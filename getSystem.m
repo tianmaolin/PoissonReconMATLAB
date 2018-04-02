@@ -79,6 +79,9 @@ for i = 1:N
                     for b = 1:5
                         for c = 1:5
                             if i+a-3 > 0 && i+a-3 <= N && j+b-3 > 0 && j+b-3 <= N && k+c-3 > 0 && k+c-3 <= N
+                                if A_ii(a,b,c) == 0
+                                    continue;
+                                end
                                 I(u) = map(i,j,k);
                                 J(u) = map(i+a-3,j+b-3,k+c-3);
                                 V(u) = A_ii(a,b,c);
@@ -103,6 +106,7 @@ A_ii = 0;
 F = bspline([-1.5,-0.5,0.5,1.5]); % basic function
 % F = bspline([-1,0,1]); % basic function
 dF = fnder(F);
+trans = - trans;
 
 A_i = 1;
 t = trans(1);

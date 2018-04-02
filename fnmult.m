@@ -7,13 +7,13 @@ function mpp = fnmult(pp1, pp2)
 % v1,v2 in conv(v1, v2) must be a vector, so the following command failed.
 % mpp = spmak(fnbrk(pp1,'b'), conv(fnbrk(pp1,'c'), fnbrk(pp2,'c')));
 
-b1 = find(pp1.breaks == pp2.breaks(1), 1);
+b1 = find(abs(pp1.breaks - pp2.breaks(1)) < 1e-13, 1);
 if isempty(b1)
     pp_temp = pp1;
     pp1 = pp2;
     pp2 = pp_temp;
 
-    b1 = find(pp1.breaks == pp2.breaks(1), 1);
+    b1 = find(abs(pp1.breaks - pp2.breaks(1)) < 1e-13, 1);
     if isempty(b1)
         mpp.pieces = 0;
         return;

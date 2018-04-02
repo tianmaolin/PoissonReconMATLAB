@@ -3,6 +3,7 @@
 % Output Triangulated mesh
 
 ptCloud = pcread('data\teapot.ply');
+% normal = ptCloud.Normal;
 ptCloud = pcdownsample(ptCloud,'random',0.1);
 normal = pcnormals(ptCloud);
 depth = 5;
@@ -50,6 +51,12 @@ for n = 1:grid.Count
     grid.neighbor{n} = intersect(a,b);
     grid.neighbor{n} = intersect(grid.neighbor{n},c);
 end
+
+
+A = getSystem(grid.width);
+weight = getWeight(grid, grid.depth - 1, 0.01);
+b = getb(grid, weight, 2);
+x = A \ b;
 
 % vol = zeros(grid.size);
 % for i = 1 : grid.Count

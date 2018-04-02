@@ -41,15 +41,32 @@ for n = 1:N^3
         if max(abs(p - o)) >= 3 * w
             continue;
         end
-        temp = [ppformInt(round((p(1)-o(1))/w/dx) + ppformInt_c, round((p(2)-o(2))/w/dx) + ppformInt_c, round((p(3)-o(3))/w/dx) + ppformInt_c);
-                ppformInt(round((p(2)-o(2))/w/dx) + ppformInt_c, round((p(1)-o(1))/w/dx) + ppformInt_c, round((p(3)-o(3))/w/dx) + ppformInt_c);
-                ppformInt(round((p(3)-o(3))/w/dx) + ppformInt_c, round((p(2)-o(2))/w/dx) + ppformInt_c, round((p(1)-o(1))/w/dx) + ppformInt_c)];
-        b(n) = b(n) + normal * temp / weight(s,:);
+        t_x = (p(1)-o(1))/w; 
+        t_y = (p(2)-o(2))/w;
+        t_z = (p(3)-o(3))/w;
+        t_i = round(t_y/dx) + ppformInt_c;
+        t_j = round(t_x/dx) + ppformInt_c;
+        t_k = round(t_z/dx) + ppformInt_c;
+%         er = max(abs([X(t_i,t_j,t_k),Y(t_i,t_j,t_k),Z(t_i,t_j,t_k)] - [t_x,t_y,t_z]));
+%         if er > dx
+%             disp('err')
+%         endb
+        % There are too many exchange of i/x and j/y. It's hard to find the
+        % relation between partial_x/y/z and t_x/y/z and t_i/j/k by
+        % definition.
+        temp = [ppformInt(t_i,t_j,t_k); ppformInt(t_k,t_i,t_j); ppformInt(t_j,t_k,t_i)];
+        t_n = normal * temp;
+        b(n) = b(n) + t_n / weight(s);
+%         temp = [ppformInt(round((p(1)-o(1))/w/dx) + ppformInt_c, round((p(2)-o(2))/w/dx) + ppformInt_c, round((p(3)-o(3))/w/dx) + ppformInt_c);
+%                 ppformInt(round((p(2)-o(2))/w/dx) + ppformInt_c, round((p(1)-o(1))/w/dx) + ppformInt_c, round((p(3)-o(3))/w/dx) + ppformInt_c);
+%                 ppformInt(round((p(3)-o(3))/w/dx) + ppformInt_c, round((p(2)-o(2))/w/dx) + ppformInt_c, round((p(1)-o(1))/w/dx) + ppformInt_c)];
+%         b(n) = b(n) + normal * temp / weight(s);
     end
 end
 end
 
 function A_i = bformInt(trans,w,div)
+trans = - trans;
 F = bspline([-1.5,-0.5,0.5,1.5]); % basic function
 % F = bspline([-1,0,1]); % basic function
 F = fndiv(F, div);
@@ -57,7 +74,6 @@ dF = fnder(F);
 
 A_i = 1;
 t = trans(1);
-% TODO:fnmult()
 F_int = fnmult(F,fntrans(dF,t));
 if F_int.pieces == 0
     F_int = 0;

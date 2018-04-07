@@ -14,7 +14,7 @@
 % end
 % mesh(x,y,z)
 
-% N = 64;
+N = 2^6;
 x = -1.5:3/N:1.5-1/N;
 [x,y] = meshgrid(x,x);
 z = zeros(size(x));
@@ -26,4 +26,4 @@ for i = 1:N
         end
     end
 end
-b = z(:);
+surf(z)

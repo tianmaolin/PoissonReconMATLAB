@@ -14,7 +14,8 @@ function mpp = fnmult(pp1, pp2)
 %                   |
 %                   |
 %                   b2
-
+%
+% Maolin Tian, Tongji University, 2018
 
 b1 = find(abs(pp1.breaks - pp2.breaks(1)) < 1e-13, 1);
 if isempty(b1)

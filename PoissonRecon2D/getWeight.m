@@ -1,5 +1,7 @@
-function weight = getWeight(grid, samples, depth, div)
+function weight = getWeight(grid, samples, depth, B_dim, div)
 %getWeight Estimate the number of points in a sample's neighborhood
+%
+% Maolin Tian, Tongji University, 2018
 
 % downsample grid
 N = 2^depth;
@@ -28,8 +30,14 @@ for s = 1:samples.Count
     end
 end
 
-B = bspline([-1.5, -0.5, 0.5, 1.5]); % basic function
-% B = bspline([-1, 0, 1]); % basic function
+% basic function
+if B_dim == 2
+    B = bspline([-1.5, -0.5, 0.5, 1.5]);
+elseif B_dim == 1
+	B = bspline([-1, 0, 1]);
+else
+    error('B_dim should be equal to 1 or 2.')
+end
 B_end = B.breaks(end);
 dx = 1 / div;
 x = 0:dx:B_end;

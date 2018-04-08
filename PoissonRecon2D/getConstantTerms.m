@@ -1,5 +1,7 @@
-function b = getConstantTerms(grid, samples, weight, div)
+function b = getConstantTerms(grid, samples, weight, B_dim, div)
 %getb b_i = int d B_i * F dp
+%
+% Maolin Tian, Tongji University, 2018
 
 N = grid.size(1);
 % map = @(i,j) i + (j-1)*N;
@@ -9,12 +11,11 @@ w = grid.width;
 dx = 1 / div;
 x = [-3:dx:-dx, 0:dx:3];
 ppformInt_c = ceil(length(x) / 2);
-% TODO: change X,Y
-[X, Y] = meshgrid(x,x);
+[Y, X] = meshgrid(x,x);
 b_i_x = zeros(length(x), length(x));
 for a = 1:length(x)
     for b = 1:length(x)
-        b_i_x(a, b) = int_dxB_B([X(a,b), Y(a,b)], div) / w ^ 3;
+        b_i_x(a, b) = int_dxB_B([X(a,b), Y(a,b)], B_dim, div) / w ^ 3;
     end
 end
 
@@ -47,8 +48,8 @@ for n = 1:N^2
         end
         t_x = (p(1)-o(1))/w; 
         t_y = (p(2)-o(2))/w;
-        t_m = round(t_y/dx) + ppformInt_c;
-        t_n = round(t_x/dx) + ppformInt_c;
+        t_m = round(t_x/dx) + ppformInt_c;
+        t_n = round(t_y/dx) + ppformInt_c;
         temp = [b_i_x(t_m,t_n); b_i_x(t_n,t_m)];
         t_n = normal * temp;
         b(n) = b(n) + t_n / weight(s);
@@ -60,9 +61,16 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function b_i_x = int_dxB_B(trans, div)
-% B = bspline([-1.5, -0.5, 0.5, 1.5]); % basic function
-B = bspline([-1, 0, 1]); % basic function
+function b_i_x = int_dxB_B(trans, B_dim, div)
+
+% basic function
+if B_dim == 2
+    B = bspline([-1.5, -0.5, 0.5, 1.5]);
+elseif B_dim == 1
+	B = bspline([-1, 0, 1]);
+else
+    error('B_dim should be equal to 1 or 2.')
+end
 B = fndiv(B, div);
 dB = fnder(B);
 b_i_x = fn_int_F_Ft(B, dB, trans(1)) * fn_int_F_Ft(B, B, trans(2));

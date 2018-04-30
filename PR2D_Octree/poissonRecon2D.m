@@ -13,7 +13,7 @@ function C = poissonRecon2D(ptCloud2d, depth, verbose)
 % Maolin Tian, Tongji University, 2018
 
 % TODO: add quadtree
-% TODO: qtdecomp, robotics.OccupancyMap3D class
+% TODO: qtdecomp, robotics.OccupancyMap3D class, Octree
 
 if nargin < 3
     verbose = false;

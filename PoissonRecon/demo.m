@@ -2,10 +2,10 @@
 % Input Oriented points
 % Output Triangulated mesh
 
-ptCloud = pcread('data\teapot.ply');
+ptCloud = pcread('..\data\shpere_uniform_2000.ply');
 % normal = ptCloud.Normal;
-ptCloud = pcdownsample(ptCloud,'random',0.1);
-normal = pcnormals(ptCloud);
+% ptCloud = pcdownsample(ptCloud,'random',0.1);
+% normal = pcnormals(ptCloud);
 depth = 5;
 % TODO: use griddata() to test
 % TODO: Interpolating Gridded Data, Interpolation of 2-D Selections in 3-D
@@ -22,13 +22,13 @@ translation = - [(ptCloud.XLimits(2) + ptCloud.XLimits(1)) / 2,...
 translation = repmat(translation, ptCloud.Count, 1);
 location = ptCloud.Location;
 location = location + translation;
-scale = scale * 1.1;
+scale = scale * 1.5;
 location = location / scale + 0.5;
 % change the orientation of teapot
 % temp = location(:,1);
 % location(:,1) = location(:,3);
 % location(:,3) = temp;
-pcNormlized = pointCloud(location, 'Normal', normal);
+pcNormlized = pointCloud(location, 'Normal', ptCloud.Normal);
 
 % Discretization
 grid.depth = depth;
@@ -56,7 +56,25 @@ end
 A = getSystem(grid.width);
 weight = getWeight(grid, grid.depth - 1, 0.01);
 b = getb(grid, weight, 2);
-x = A \ b;
+x0 = A \ b;
+
+
+% Plot
+v = reshape(x0,N,N,N);
+x = grid.width:grid.width:1;
+[x,y,z] = meshgrid(x,x,x);
+isovalue = 1.5e-6;
+p = patch(isosurface(x,y,z,v,isovalue));
+isonormals(x,y,z,v,p)
+p.FaceColor = 'red';
+p.EdgeColor = 'none';
+daspect([1 1 1])
+view(3); 
+axis tight
+camlight 
+lighting gouraud
+hold on
+plot3(pcNormlized.Location(:,1), pcNormlized.Location(:,2), pcNormlized.Location(:,3), '.')
 
 % vol = zeros(grid.size);
 % for i = 1 : grid.Count

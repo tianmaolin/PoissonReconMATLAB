@@ -3,16 +3,17 @@ function ptCloud2D = ptCloudExample2D(model, N)
 %
 % Maolin Tian, Tongji University, 2018
 
-% if model == 'circle'
-% dt = pi / round(N);
+if model == 'circle'
+dt = pi / round(N);
 % alpha = [0:2*dt:pi/2-dt, pi/2:2*dt:3/2*pi-dt, 3/2*pi:dt:2*pi-dt];
-% % alpha = 0:2*dt:2*pi-dt;
-% x = cos(alpha);
-% y = sin(alpha);
-% location = [x(:), y(:)];
-% normal = - [x(:), y(:)];
-% ptCloud2D = pointCloud2D(location, normal);
-% end
+alpha = 0:2*dt:2*pi-dt;
+x = cos(alpha);
+y = sin(alpha);
+location = [x(:), y(:)];
+normal = - [x(:), y(:)];
+ptCloud2D = pointCloud2D(location, normal);
+return
+end
 
 if strcmp(model,'triangle')
     x0 = 0:1/N:1;

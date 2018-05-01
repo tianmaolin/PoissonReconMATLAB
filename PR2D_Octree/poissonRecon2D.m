@@ -1,4 +1,4 @@
-function C = poissonRecon2D(ptCloud2d, depth, verbose)
+function C = poissonRecon2D(ptCloud2d, maxDepth, minDepth, verbose)
 %PoissonRecon2D Perform the Poisson Surface Reconstruction algorithm on 2-D
 % point cloud.
 %
@@ -18,34 +18,29 @@ function C = poissonRecon2D(ptCloud2d, depth, verbose)
 if nargin < 3
     verbose = false;
 end
+if maxDepth < minDepth
+    disp('maxDepth < minDepth !')
+    return;
+end
+
+degree = 1;
+global dotTable dotdTable ddotdTable
+[dotTable, dotdTable, ddotdTable] = getDotTable(degree, minDepth, maxDepth);
 
 time = zeros(5, 1);
 tic;
-% Create Grids and Samples
-N = 2^depth;
-grid = struct('depth', depth, 'width', 1/N, 'size', [N, N]);
-[pc, T, scale] = normalization(ptCloud2d, 1.3);
+% Create Trees and Samples
+minWidth = 2^(-maxDepth);
+[pc, T, scale] = normalization(ptCloud2d, 1.5);
+pc = pcdownsample2D(pc, minWidth/3);
 samples = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
+[tree,samples] = setTree(samples, maxDepth, minDepth);
 
-% Create Maps between Grid and Samples
-% grid_ind is the top-right corner of pixel grid containing the sample
-samples.grid_ind = ceil(samples.Location / grid.width);
-% convert (i,j) to n = i + (j - 1) * N
-samples.grid_ind = samples.grid_ind(:, 1) + (samples.grid_ind(:, 2) - 1) * N;
-% sample_ind is the cell of samples' indices contained by the pixel grid
-grid.sample_ind = cell(N * N, 1);
-for n = 1 : N * N
-    grid.sample_ind{n} = find(samples.grid_ind == n);
-end
-time(1) = toc();
-
-% Get the FEM Coefficients and Constant Terms
+% Set the FEM Coefficients and Constant Terms
 % Paper: Kazhdan, Bolitho, and Hoppe. Poisson Surface Reconstruction. 2006
-Basis_dim = 2;
-weight = getWeight(grid, samples, grid.depth - 1, Basis_dim, 20);
 time(2) = toc() - time(1);
-A = getCoefficients(grid, Basis_dim);
-b = getConstantTerms(grid, samples, weight, Basis_dim, 5);
+A = setCoefficients(tree);
+b = setConstantTerms(tree, samples);
 time(3) = toc() - time(2);
 
 % Solve the Linear System
@@ -61,20 +56,20 @@ if verbose
 %     quiver(ptCloud2d.Location(:,1), ptCloud2d.Location(:,2), ptCloud2d.Normal(:,1), ptCloud2d.Normal(:,2))
 %     title('Input Oriented Points')
 
-    figure
-    fnplt(bspline(0 : Basis_dim + 1))
-    title('B-Spline')
+%     figure
+%     fnplt(bspline(0 : Basis_dim + 1))
+%     title('B-Spline')
     
 %     figure
 %     plot3(samples.Location(:,1), samples.Location(:,2), weight, '.')
 %     title('Weight')
 
-    figure
-    spy(A)
-    title('Coefficients of Linear System')
+%     figure
+%     spy(A)
+%     title('Coefficients of Linear System')
 
     figure
-    U = grid.width : grid.width : 1;
+    U = tree.width : tree.width : 1;
     [V, U] = meshgrid(U);
     Z = reshape(b, N, N);
     surf(U, V, Z)
@@ -89,10 +84,10 @@ end
 % Extract Contour Line from x
 tic;
 grid_div = 3;
-iso_value = getIsoValue(grid, samples, weight, x, Basis_dim, 10);
-X = getLinearBsplineSum(grid, x, Basis_dim, grid_div, 10);
+iso_value = getIsoValue(tree, samples, weight, x, degree, 10);
+X = getLinearBsplineSum(tree, x, degree, grid_div, 10);
 
-w = grid.width / grid_div;
+w = tree.width / grid_div;
 U = w : w : 1;
 [V, U] = meshgrid(U);
 U = (U - 0.5) * scale - T(1);
@@ -120,24 +115,3 @@ end
 
 end
 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function [ptCloudNormalized, trans, scale] = normalization(ptCloud, scaleFactor)
-%normalization Normalize the ptCloud to [0,1]*[0,1]
-if nargin < 2
-    scaleFactor = 1.25;
-end
-
-trans = - [(ptCloud.XLimits(2) + ptCloud.XLimits(1)) / 2,...
-    (ptCloud.YLimits(2) + ptCloud.YLimits(1)) / 2];
-% trans = repmat(trans, ptCloud.Count, 1);
-scale = max([ptCloud.XLimits(2) - ptCloud.XLimits(1), ...
-    ptCloud.YLimits(2) - ptCloud.YLimits(1)]);
-scale = scale * scaleFactor;
-
-location = ptCloud.Location + trans;
-location = location / scale + 0.5;
-ptCloudNormalized = pointCloud2D(location, ptCloud.Normal);
-end

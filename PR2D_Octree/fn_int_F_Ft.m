@@ -1,5 +1,5 @@
 function v = fn_int_F_Ft(F1, F2, t)
-%int_F_Ft int F1(x) * F2(x - t) dx
+%fn_int_F_Ft int F1(x) * F2(x - t) dx
 %
 % Maolin Tian, Tongji University, 2018
 
@@ -9,12 +9,4 @@ if F_int.pieces == 0
 else
     v = fnval(fnint(F_int),F_int.breaks(end));
 end
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function tpp = fntrans(pp1, t)
-%fnmult Translate function
-tpp = pp1;
-tpp.breaks = tpp.breaks - t;
 end

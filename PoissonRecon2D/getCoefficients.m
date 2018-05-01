@@ -25,6 +25,7 @@ V = zeros(125 * N ^ 2, 1);
 
 m = 1:N^2;
 % 0 Dirichlet, A_ii = 1, b = 0
+% TODO: the boundry is a little wrong compared with PR2D_Octree
 boundm = m(mod(m,N) == 1 | mod(m,N) == N | ceil(m/N) == 1 | ceil(m/N) == N);
 for j = 1:5
     for i = 1:5

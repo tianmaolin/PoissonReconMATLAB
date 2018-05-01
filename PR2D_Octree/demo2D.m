@@ -3,9 +3,9 @@
 %
 % Maolin Tian, Tongji University, 2018
 
-% ptCloud = ptCloudExample2D('circle', 1000);
+ptCloud = ptCloudExample2D('circle', 100);
 % ptCloud = ptCloudExample2D('Armadillo');
-ptCloud = ptCloudExample2D('Dragon');
+% ptCloud = ptCloudExample2D('Dragon');
 % ptCloud = ptCloudDownsaple;
 depth = 5; % grid.size = [2^depth, 2^depth]
 verbose = false;

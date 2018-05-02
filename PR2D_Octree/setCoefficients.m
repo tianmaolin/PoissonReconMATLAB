@@ -14,7 +14,6 @@ for d1 = tree.minDepth:tree.maxDepth
     for d2 = tree.minDepth:d1
         dx = dotTable{d1,d2}(1,1):2^(-d1-1):dotTable{d1,d2}(end,1);
         [dx,dy] = meshgrid(dx,dx);
-        % TODO: need trans matrix for reshape?
         A_ij{d1,d2} = reshape(int_dF1_dF2(d1, d2, dx, dy),size(dx));
     end
 end

@@ -11,19 +11,18 @@ int_F_dyF = cell(tree.maxDepth,tree.minDepth);
 for d1 = tree.minDepth:tree.maxDepth
     for d2 = tree.minDepth:tree.maxDepth
         dx = dotdTable{d1,d2}(1,1):2^(-max(d1,d2)-1):dotdTable{d1,d2}(end,1);
-        % [dy,dx] is right.
         [dx,dy] = meshgrid(dx,dx);
         int_F_dxF{d1,d2} = reshape(int_Fs_dxFi(d1, d2, dx, dy),size(dx));
         int_F_dyF{d1,d2} = reshape(int_Fs_dyFi(d1, d2, dx, dy),size(dx));
     end
 end
 
-for d1 = tree.minDepth:tree.maxDepth
-    for d2 = d1+1:tree.maxDepth
-        int_F_dxF{d1,d2} = -int_F_dxF{d1,d2};
-        int_F_dyF{d1,d2} = -int_F_dyF{d1,d2};
-    end
-end
+% for d1 = tree.minDepth:tree.maxDepth
+%     for d2 = d1+1:tree.maxDepth
+%         int_F_dxF{d1,d2} = -int_F_dxF{d1,d2};
+%         int_F_dyF{d1,d2} = -int_F_dyF{d1,d2};
+%     end
+% end
 
 b = zeros(N, 1);
 for n = 1:N
@@ -47,9 +46,9 @@ for n = 1:N
         end
         
         dx = p(1) - o(1);
-        dx = 1+round((dx - dotdTable{d1,d2}(1,1)) * 2^(d1+1));
+        dx = 1+round((dx - dotdTable{d1,d2}(1,1)) * 2^(max(d1,d2)+1));
         dy = p(2) - o(2);
-        dy = 1+round((dy - dotdTable{d1,d2}(1,1)) * 2^(d1+1));
+        dy = 1+round((dy - dotdTable{d1,d2}(1,1)) * 2^(max(d1,d2)+1));
         Len = size(dotdTable{d1,d2},1);
         if dx <= 0 || dx > Len || dy <= 0 || dy > Len
             continue;

@@ -1,4 +1,4 @@
-function v = getIsoValue(tree, samples, x)
+function v = isoValue(tree, samples, x)
 
 global valueTable
 v = 0;

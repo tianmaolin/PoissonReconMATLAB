@@ -5,7 +5,6 @@ function b = setConstantTerms(tree, samples, weight)
 global dotdTable
 
 N = tree.Count;
-% TODO, when maxD~=minD, at north/south pole of circle, the b is 0?
 int_F_dxF = cell(tree.maxDepth,tree.minDepth);
 int_F_dyF = cell(tree.maxDepth,tree.minDepth);
 for d1 = tree.minDepth:tree.maxDepth
@@ -17,23 +16,10 @@ for d1 = tree.minDepth:tree.maxDepth
     end
 end
 
-% for d1 = tree.minDepth:tree.maxDepth
-%     for d2 = d1+1:tree.maxDepth
-%         int_F_dxF{d1,d2} = -int_F_dxF{d1,d2};
-%         int_F_dyF{d1,d2} = -int_F_dyF{d1,d2};
-%     end
-% end
-
 b = zeros(N, 1);
 for n = 1:N
-    %     if isempty(grid.neighbor{n})
-    %         continue;
-    %     end
     w1 = tree.width(n);
     for s = cell2mat(tree.sample_ind(tree.ngbr{n}))'
-%         if isempty(s)
-%             continue;
-%         end
         m = samples.tree_ind(s);
         d1 = tree.depth(n);
         d2 = tree.depth(m);
@@ -108,3 +94,5 @@ else
 end
 int_B_dyB = int_B_dyB * 4^d1 * 4^d2;
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

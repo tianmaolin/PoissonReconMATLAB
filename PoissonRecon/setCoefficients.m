@@ -1,10 +1,9 @@
 function A = setCoefficients(tree)
-%getCoefficients Coefficients_{ij} = int d B_i * d B_j dp
+%setCoefficients Coefficients_{ij} = int d B_i * d B_j dp
 % Dirichlet boundary condition = 0
 %
 % Maolin Tian, Tongji University, 2018
 
-% TODO: when degree = 2,maxDepth = minDepth, why the result of Ax = 4 is odd?
 global dotTable
 
 N = tree.Count;
@@ -31,9 +30,6 @@ for i = 1:N
         continue;
     end
     for j = tree.ngbr{i}'
-%         if tree.isbound(j)
-%             continue;
-%         end
         con = con + 1;
         I(con) = i;
         J(con) = j;

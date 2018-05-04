@@ -100,3 +100,5 @@ dosplit = double(maxVals) > 0.5;
 
 dosplit = (dosplit & (size(A,1) > treeDim(1))) | (size(A,2) > treeDim(2));
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

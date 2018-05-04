@@ -1,121 +1,126 @@
-function C = poissonRecon2D(ptCloud2d, depth, verbose)
+function C = poissonRecon2D(ptCloud2d, minDepth, maxDepth, verbose)
 %PoissonRecon2D Perform the Poisson Surface Reconstruction algorithm on 2-D
 % point cloud.
 %
 % pointCloud2D object ptCloud2d: Oriented points
-% depth: [2^depth, 2^depth] is grid size
+% minDepth: max grid width 2^-minDepth
+% maxDepth: min grid width 2^-maxDepth
 % verbose: Display progress information
 % Contour line object C: boundary of scaned obejct
 %
-% There aren't octree struct and multigrid method. We use pixel grid to
-% replace octree, and use mldivide \ to solve the linear system directly.
+% There aren't multigrid method. We use mldivide \ to solve equation. 
+% It uses 3-D Point Cloud Processing introduced in R2015a.
 %
 % Maolin Tian, Tongji University, 2018
 
-% TODO: add quadtree
-% TODO: qtdecomp, robotics.OccupancyMap3D class
+% TODO: robotics.OccupancyMap3D class
 
-if nargin < 3
+if nargin < 4
     verbose = false;
 end
+if maxDepth < minDepth
+    error('maxDepth < minDepth !')
+end
 
+degree = 2;
+global valueTable dotTable dotdTable ddotdTable
+[valueTable, dotTable, dotdTable, ddotdTable] = valueDotTable(degree, minDepth, maxDepth);
+
+% Create Tree and Samples
 time = zeros(5, 1);
 tic;
-% Create Grids and Samples
-N = 2^depth;
-grid = struct('depth', depth, 'width', 1/N, 'size', [N, N]);
 [pc, T, scale] = normalization(ptCloud2d, 1.3);
+pc = pcdownsample2D(pc, 2^(-maxDepth-1));
 samples = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
+[tree,samples] = setTree(samples, minDepth, maxDepth);
 
-% Create Maps between Grid and Samples
-% grid_ind is the top-right corner of pixel grid containing the sample
-samples.grid_ind = ceil(samples.Location / grid.width);
-% convert (i,j) to n = i + (j - 1) * N
-samples.grid_ind = samples.grid_ind(:, 1) + (samples.grid_ind(:, 2) - 1) * N;
-% sample_ind is the cell of samples' indices contained by the pixel grid
-grid.sample_ind = cell(N * N, 1);
-for n = 1 : N * N
-    grid.sample_ind{n} = find(samples.grid_ind == n);
-end
-time(1) = toc();
-
-% Get the FEM Coefficients and Constant Terms
+% Set the FEM Coefficients and Constant Terms
 % Paper: Kazhdan, Bolitho, and Hoppe. Poisson Surface Reconstruction. 2006
-Basis_dim = 2;
-weight = getWeight(grid, samples, grid.depth - 1, Basis_dim, 20);
+time(1) = toc();
+weights = getWeight(samples, minDepth - 2 , maxDepth - 2);
 time(2) = toc() - time(1);
-A = getCoefficients(grid, Basis_dim);
-b = getConstantTerms(grid, samples, weight, Basis_dim, 5);
+A = setCoefficients(tree);
+b = setConstantTerms(tree, samples, weights);
 time(3) = toc() - time(2);
 
 % Solve the Linear System
+% x = cgs(A, b);
 x = A \ b;
 time(4) = toc() - time(3);
 % TODO: test the influence on speed and effect(ptCloud.Count, depth) of
 % scaleFactor, FEM_Basis_dim, weight_Basis_dim, weight_depth, weight_div,
-% b_div, grid_div, iso_div, X_div, cgs(). Refer to c++
+% b_div, grid_div, iso_div, X_div, \, cgs(). Refer to c++
 
 % Show
 if verbose
+    
 %     figure
 %     quiver(ptCloud2d.Location(:,1), ptCloud2d.Location(:,2), ptCloud2d.Normal(:,1), ptCloud2d.Normal(:,2))
-%     title('Input Oriented Points')
+%     title('Input Oriented Points'), legend([num2str(ptCloud2d.Count), ' Points'])
 
-    figure
-    fnplt(bspline(0 : Basis_dim + 1))
-    title('B-Spline')
+%     figure
+%     fnplt(bspline(0 : degree + 1))
+%     title('B-Spline')
     
 %     figure
 %     plot3(samples.Location(:,1), samples.Location(:,2), weight, '.')
 %     title('Weight')
 
+    figure, hold on
+    plot(tree.center(:,1), tree.center(:,2), '.')
+    plot(samples.Location(:,1), samples.Location(:,2), '.')
+    legend('tree', 'samples')
+    title('Input Points and Tree Center')
+
     figure
     spy(A)
     title('Coefficients of Linear System')
+    legend(['size: ', num2str(size(A,1)), ' * ', num2str(size(A,1))])
 
-    figure
-    U = grid.width : grid.width : 1;
-    [V, U] = meshgrid(U);
-    Z = reshape(b, N, N);
-    surf(U, V, Z)
+    figure, hold on
+    truncB = max(abs(quantile(b(b~=0),[0.25, 0.75])));
+    plot3(tree.center(:,1), tree.center(:,2), b,'.')
+    plot3(tree.center(b<-truncB,1), tree.center(b<-truncB,2), b(b<-truncB),'o')
+    plot3(tree.center(b>truncB,1), tree.center(b>truncB,2), b(b>truncB),'*')
+    legend('', ['b < ', num2str(-truncB)], ['b > ', num2str(truncB)])
     title('Constant Terms of Linear System')
    
-    figure
-    Z = reshape(x, N, N);
-    surf(U, V, Z)
-    title('Solution of Linear System')
+%     figure
+%     plot3(tree.center(:,1), tree.center(:,2), x,'.')
+%     title('Solution of Linear System')
+
 end
 
 % Extract Contour Line from x
 tic;
-grid_div = 3;
-iso_value = getIsoValue(grid, samples, weight, x, Basis_dim, 10);
-X = getLinearBsplineSum(grid, x, Basis_dim, grid_div, 10);
+X = basisSum(tree, x);
+iso_value = isoValue(tree, samples, x);
 
-w = grid.width / grid_div;
-U = w : w : 1;
-[V, U] = meshgrid(U);
-U = (U - 0.5) * scale - T(1);
-V = (V - 0.5) * scale - T(2);
-Z = reshape(X, grid_div * N, grid_div * N);
-
-% figure, hold on
-% plot(ptCloud2d.Location(:,1), ptCloud2d.Location(:,2), '.')
-% contour(U, V, Z, [iso_value, iso_value], 'LineWidth', 2);
-% hold off
-
+w = 2^-maxDepth;
+U = w/2:w:1-w/2;
+[U,V]= meshgrid(U, U);
+Z = griddata(tree.center(:,1), tree.center(:,2), X, U, V, 'linear');
+U = double((U - 0.5) * scale - T(1));
+V = double((V - 0.5) * scale - T(2));
 figure
-C = contour(U, V, Z, [iso_value, iso_value], 'LineWidth', 2);
+C = contour(U, V, Z, [iso_value, iso_value], 'LineWidth', 1);
 title('Isoline')
 time(5) = toc();
 
 if verbose
-    disp(['Read input into grid:        ',	num2str(time(1))])
+    figure, hold on
+    plot3(tree.center(:,1), tree.center(:,2), X,'.')
+    plot3(tree.center(X>iso_value, 1), tree.center(X>iso_value, 2), X(X>iso_value),'*')
+    legend('\chi < isovalue', '\chi > isovalue'), title('\chi')
+    
+    disp(['Set tree:        ',          	num2str(time(1))])
     disp(['Got kernel density:          ',	num2str(time(2))])
     disp(['Set FEM constraints:         ',	num2str(time(3))])
     disp(['Linear system solved:        ',	num2str(time(4))])
     disp(['Got piecewise linear curve:  ',	num2str(time(5))])
+%     disp(['Linear system size:        ',	num2str(size(A,1)), ' * ', num2str(size(A,1))])
     disp(' ')
+   
 end
 
 end
@@ -141,3 +146,21 @@ location = ptCloud.Location + trans;
 location = location / scale + 0.5;
 ptCloudNormalized = pointCloud2D(location, ptCloud.Normal);
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function ptCloudNormalized = pcdownsample2D(ptCloud, width)
+%pcdownsample2D Downsample the 2-D ptCloud
+location = [ptCloud.Location,zeros(ptCloud.Count,1)];
+normal = [ptCloud.Normal,zeros(ptCloud.Count,1)];
+
+p = pointCloud(location,'Normal',normal);
+p = pcdownsample(p,'gridAverage',width);
+
+location = p.Location(:,1:2);
+normal = p.Normal(:,1:2);
+
+ptCloudNormalized = pointCloud2D(location, normal);
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

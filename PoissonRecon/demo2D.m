@@ -1,19 +1,47 @@
+% Shows a couple of sample reconstruction using PR - Poisson Surface
+% Reconstruction
+%
+% Maolin Tian, Tongji University, 2018
+
+% ptCloud = ptCloudExample2D('circle', 100);
+% ptCloud = ptCloudExample2D('Armadillo');
+ptCloud = ptCloudExample2D('Dragon');
+% ptCloud = ptCloudDownsaple;
+minDepth = 6; % grid size = [2^depth, 2^depth]
+maxDepth = 8;
+verbose = true;
+
+figure
+plot(ptCloud.Location(:,1), ptCloud.Location(:,2), '.')
+title('Input Point Cloud')
+
+Contour = poissonRecon2D(ptCloud, minDepth, maxDepth, verbose);
+if Contour(2,1) == size(Contour, 2) - 1
+    disp('Number of Isoline Pieces: ')
+else
+    disp('Number of Main Isoline Pieces: ')
+end
+disp(Contour(2, 1))
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function ptCloud2D = ptCloudExample2D(model, N)
 %ptCloud2D make 2D pointCloud examples
 %
 % Maolin Tian, Tongji University, 2018
 
-if model == 'circle'
-dt = pi / round(N);
-% alpha = [0:2*dt:pi/2-dt, pi/2:2*dt:3/2*pi-dt, 3/2*pi:dt:2*pi-dt];
-alpha = 0:2*dt:2*pi-dt;
-x = cos(alpha);
-y = sin(alpha);
-location = [x(:), y(:)];
-normal = - [x(:), y(:)];
-ptCloud2D = pointCloud2D(location, normal);
-return
-end
+% if model == 'circle'
+% dt = pi / round(N);
+% % alpha = [0:2*dt:pi/2-dt, pi/2:2*dt:3/2*pi-dt, 3/2*pi:dt:2*pi-dt];
+% alpha = 0:2*dt:2*pi-dt;
+% x = cos(alpha);
+% y = sin(alpha);
+% location = [x(:), y(:)];
+% normal = - [x(:), y(:)];
+% ptCloud2D = pointCloud2D(location, normal);
+% return
+% end
 
 if strcmp(model,'triangle')
     x0 = 0:1/N:1;
@@ -55,11 +83,11 @@ elseif strcmp(model,'Armadillo')
 elseif strcmp(model,'Dragon')
     % Author: The Stanford 3D Scanning Repository
     ptCloud3D = pcread('..\data\dragon.ply');
-    XZ_i = find(abs(ptCloud3D.Location(:,3) + 0.0045) < 0.0005 ...
-        & ptCloud3D.Location(:,1) < -0.015 ...
-        & ptCloud3D.Location(:,1) > -0.105 ...
-        & ptCloud3D.Location(:,2) < 0.19 ...
-        & ptCloud3D.Location(:,2) > 0.12);
+    XZ_i = find(abs(ptCloud3D.Location(:,3) + 0.0045) < 0.0005 ); % ...
+%         & ptCloud3D.Location(:,1) < -0.015 ...
+%         & ptCloud3D.Location(:,1) > -0.105 ...
+%         & ptCloud3D.Location(:,2) < 0.19 ...
+%         & ptCloud3D.Location(:,2) > 0.12);
     location = ptCloud3D.Location(XZ_i,:);
     location = [location(:, 1), location(:, 2)];
     normal = ptCloud3D.Normal(XZ_i,:);
@@ -88,16 +116,4 @@ ptCloud2D.Location = ptCloud2D.Location + e2 .* t;
 ptCloud2D.Normal = ptCloud2D.Normal + e3;
 ptCloud2D.Normal = ptCloud2D.Normal./(ptCloud2D.Normal(:,1).^2 + ptCloud2D.Normal(:,2).^2);
 pcNoisy = ptCloud2D;
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function ptCloudDown = pcdownsample2D(ptCloud2D, percentage)
-%pcdownsample2D Downsample a 2-D point cloud
-% returns a downsampled point cloud with random sampling and without
-% replacement.
-ind = randi(ptCloud2D.Count, 1, round(ptCloud2D.Count*percentage));
-location = ptCloud2D.Location(ind,:);
-normal = ptCloud2D.Normal(ind,:);
-ptCloudDown = pointCloud2D(location, normal);
 end

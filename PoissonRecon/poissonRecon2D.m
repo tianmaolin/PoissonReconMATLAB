@@ -3,40 +3,40 @@ function C = poissonRecon2D(ptCloud2d, minDepth, maxDepth, verbose)
 % point cloud.
 %
 % pointCloud2D object ptCloud2d: Oriented points
-% depth: [2^depth, 2^depth] is grid size
+% minDepth: max grid width 2^-minDepth
+% maxDepth: min grid width 2^-maxDepth
 % verbose: Display progress information
 % Contour line object C: boundary of scaned obejct
 %
-% There aren't octree struct and multigrid method. We use pixel grid to
-% replace octree, and use mldivide \ to solve the linear system directly.
+% There aren't multigrid method. We use mldivide \ to solve equation. 
+% It uses 3-D Point Cloud Processing introduced in R2015a.
 %
 % Maolin Tian, Tongji University, 2018
 
-% TODO: robotics.OccupancyMap3D class, Octree
+% TODO: robotics.OccupancyMap3D class
 
 if nargin < 4
     verbose = false;
 end
 if maxDepth < minDepth
-    disp('maxDepth < minDepth !')
-    return;
+    error('maxDepth < minDepth !')
 end
 
 degree = 2;
 global valueTable dotTable dotdTable ddotdTable
-[valueTable, dotTable, dotdTable, ddotdTable] = getDotTable(degree, minDepth, maxDepth);
+[valueTable, dotTable, dotdTable, ddotdTable] = valueDotTable(degree, minDepth, maxDepth);
 
+% Create Tree and Samples
 time = zeros(5, 1);
 tic;
-% Create Trees and Samples
 [pc, T, scale] = normalization(ptCloud2d, 1.3);
 pc = pcdownsample2D(pc, 2^(-maxDepth-1));
 samples = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
 [tree,samples] = setTree(samples, minDepth, maxDepth);
 
-time(1) = toc();
 % Set the FEM Coefficients and Constant Terms
 % Paper: Kazhdan, Bolitho, and Hoppe. Poisson Surface Reconstruction. 2006
+time(1) = toc();
 weights = getWeight(samples, minDepth - 2 , maxDepth - 2);
 time(2) = toc() - time(1);
 A = setCoefficients(tree);
@@ -53,6 +53,7 @@ time(4) = toc() - time(3);
 
 % Show
 if verbose
+    
 %     figure
 %     quiver(ptCloud2d.Location(:,1), ptCloud2d.Location(:,2), ptCloud2d.Normal(:,1), ptCloud2d.Normal(:,2))
 %     title('Input Oriented Points'), legend([num2str(ptCloud2d.Count), ' Points'])
@@ -87,28 +88,29 @@ if verbose
 %     figure
 %     plot3(tree.center(:,1), tree.center(:,2), x,'.')
 %     title('Solution of Linear System')
+
 end
 
-tic;
 % Extract Contour Line from x
+tic;
 X = basisSum(tree, x);
-isoValue = getIsoValue(tree, samples, x);
+iso_value = isoValue(tree, samples, x);
 
-figure
 w = 2^-maxDepth;
 U = w/2:w:1-w/2;
 [U,V]= meshgrid(U, U);
 Z = griddata(tree.center(:,1), tree.center(:,2), X, U, V, 'linear');
 U = double((U - 0.5) * scale - T(1));
 V = double((V - 0.5) * scale - T(2));
-C = contour(U, V, Z, [isoValue, isoValue], 'LineWidth', 1);
+figure
+C = contour(U, V, Z, [iso_value, iso_value], 'LineWidth', 1);
 title('Isoline')
 time(5) = toc();
 
 if verbose
     figure, hold on
     plot3(tree.center(:,1), tree.center(:,2), X,'.')
-    plot3(tree.center(X>isoValue, 1), tree.center(X>isoValue, 2), X(X>isoValue),'*')
+    plot3(tree.center(X>iso_value, 1), tree.center(X>iso_value, 2), X(X>iso_value),'*')
     legend('\chi < isovalue', '\chi > isovalue'), title('\chi')
     
     disp(['Set tree:        ',          	num2str(time(1))])
@@ -123,3 +125,42 @@ end
 
 end
 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function [ptCloudNormalized, trans, scale] = normalization(ptCloud, scaleFactor)
+%normalization Normalize the ptCloud to [0,1]*[0,1]
+if nargin < 2
+    scaleFactor = 1.25;
+end
+
+trans = - [(ptCloud.XLimits(2) + ptCloud.XLimits(1)) / 2,...
+    (ptCloud.YLimits(2) + ptCloud.YLimits(1)) / 2];
+% trans = repmat(trans, ptCloud.Count, 1);
+scale = max([ptCloud.XLimits(2) - ptCloud.XLimits(1), ...
+    ptCloud.YLimits(2) - ptCloud.YLimits(1)]);
+scale = scale * scaleFactor;
+
+location = ptCloud.Location + trans;
+location = location / scale + 0.5;
+ptCloudNormalized = pointCloud2D(location, ptCloud.Normal);
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function ptCloudNormalized = pcdownsample2D(ptCloud, width)
+%pcdownsample2D Downsample the 2-D ptCloud
+location = [ptCloud.Location,zeros(ptCloud.Count,1)];
+normal = [ptCloud.Normal,zeros(ptCloud.Count,1)];
+
+p = pointCloud(location,'Normal',normal);
+p = pcdownsample(p,'gridAverage',width);
+
+location = p.Location(:,1:2);
+normal = p.Normal(:,1:2);
+
+ptCloudNormalized = pointCloud2D(location, normal);
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

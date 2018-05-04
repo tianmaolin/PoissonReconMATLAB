@@ -1,5 +1,5 @@
-function [dotTable, dotdTable, ddotdTable] = getDotTable(degree, minDepth, maxDepth)
-%getDotTable compute b_w1 * b_w2, b_w1 * b_w2', b_w1' * b_w2'
+function [valueTable, dotTable, dotdTable, ddotdTable] = getDotTable(degree, minDepth, maxDepth)
+%getDotTable compute b_w, b_w1 * b_w2, b_w1 * b_w2', b_w1' * b_w2'
 % x = k 2^(-maxDepth), k is an integer.
 
 if degree == 2
@@ -8,6 +8,14 @@ elseif degree == 1
 	b = bspline([-1, 0, 1]);
 end
 db = fnder(b);
+
+
+valueTable = cell(maxDepth - minDepth, 1);
+for d = 1 : maxDepth
+    b_w = fnscale(b, 2^(-d));
+    x = b_w.breaks(1): 2^(-d-2): b_w.breaks(end);
+    valueTable{d} = [x', fnval(b_w, x')];
+end
 
 dotTable = cell(maxDepth - minDepth, maxDepth - minDepth);
 for d1 = minDepth : maxDepth

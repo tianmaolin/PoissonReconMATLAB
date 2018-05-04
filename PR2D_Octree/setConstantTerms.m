@@ -1,4 +1,4 @@
-function b = setConstantTerms(tree, samples)
+function b = setConstantTerms(tree, samples, weight)
 %setConstantTerms b_i = int V * d F_i dp
 %
 % Maolin Tian, Tongji University, 2018
@@ -55,15 +55,7 @@ for n = 1:N
         end
         temp = [int_F_dxF{d1,d2}(dy, dx); int_F_dyF{d1,d2}(dy, dx)];
         t_n = normal * temp;
-        b(n) = b(n) + t_n;
-        
-        %         t_x = (p(1)-o(1))/w;
-        %         t_y = (p(2)-o(2))/w;
-        %         t_m = round(t_x/dx) + ppformInt_c;
-        %         t_n = round(t_y/dx) + ppformInt_c;
-        %         temp = [int_F_dxF(t_m,t_n); int_F_dyF(t_n,t_m)];
-        %         t_n = normal * temp;
-        %         b(n) = b(n) + t_n;
+        b(n) = b(n) + t_n / weight(s);
     end
 end
 end

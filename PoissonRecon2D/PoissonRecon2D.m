@@ -13,8 +13,6 @@ function C = poissonRecon2D(ptCloud2d, minDepth, maxDepth, verbose)
 %
 % Maolin Tian, Tongji University, 2018
 
-% TODO: robotics.OccupancyMap3D class
-
 if nargin < 4
     verbose = false;
 end

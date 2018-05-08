@@ -3,12 +3,12 @@ function C = poissonRecon2D(ptCloud2d, minDepth, maxDepth, verbose)
 % point cloud.
 %
 % pointCloud2D object ptCloud2d: Oriented points
-% minDepth: max grid width 2^-minDepth
-% maxDepth: min grid width 2^-maxDepth
+% minDepth: max pixel width 2^-minDepth
+% maxDepth: min pixel width 2^-maxDepth
 % verbose: Display progress information
 % Contour line object C: boundary of scaned obejct
 %
-% There aren't multigrid method. We use mldivide \ to solve equation. 
+% There is not multigrid method. We use mldivide \ to solve equation. 
 % It uses 3-D Point Cloud Processing introduced in R2015a.
 %
 % Maolin Tian, Tongji University, 2018
@@ -27,7 +27,7 @@ global valueTable dotTable dotdTable ddotdTable
 % Create Tree and Samples
 time = zeros(5, 1);
 tic;
-[pc, T, scale] = normalization(ptCloud2d, 1.3);
+[pc, T, scale] = normalization(ptCloud2d, 1.5);
 pc = pcdownsample2D(pc, 2^(-maxDepth-1));
 samples = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
 [tree,samples] = setTree(samples, minDepth, maxDepth);

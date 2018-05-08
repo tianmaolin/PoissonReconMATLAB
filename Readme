@@ -1,3 +1,9 @@
 # PoissonRecon in MATLAB
 
-Built in MATLAB 2017b
+Perform the Poisson Surface Reconstruction algorithm.
+
+There are 2 version of PoissonRecon, using 3-D and 2-D pointCloud.
+There is not multigrid method. We use mldivide \ to solve equation. 
+It uses 3-D Point Cloud Processing introduced in MATLAB R2015a.
+
+Maolin Tian, Tongji University, 2018

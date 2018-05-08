@@ -56,6 +56,15 @@ if strcmp(model,'triangle')
     ptCloud2D = pointCloud2D(location, normal);
     ptCloud2D = AddNoise(ptCloud2D, 0.001);
     
+elseif strcmp(model,'circleNoError')
+    dt = pi / round(N);
+    alpha = 0:2*dt:2*pi-dt;
+    x = cos(alpha);
+    y = sin(alpha);
+    location = [x(:), y(:)];
+    normal = - [x(:), y(:)];
+    ptCloud2D = pointCloud2D(location, normal);
+    
 elseif strcmp(model,'circle')
     dt = pi / round(N);
 %     alpha = [0:3*dt:pi/2-dt, pi/2:2*dt:3/2*pi-dt, 3/2*pi:10*dt:2*pi-dt];

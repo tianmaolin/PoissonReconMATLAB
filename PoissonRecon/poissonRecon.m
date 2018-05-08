@@ -8,7 +8,7 @@ function [F,V] = poissonRecon(pointCloud, minDepth, maxDepth, verbose)
 %          F:   the face list of the resulting triangulated mesh
 %          V:   the vertex list of the resulting triangulated mesh
 %
-% There aren't multigrid method. We use mldivide \ to solve equation. 
+% There is not multigrid method. We use mldivide \ to solve equation. 
 % It uses 3-D Point Cloud Processing introduced in MATLAB R2015a.
 %
 % Maolin Tian, Tongji University, 2018
@@ -97,6 +97,7 @@ time(4) = toc() - time(3);
 
 % Extract IsoSurface from x
 X = basisSum(tree, x);
+% TODO: isoValue() is too big!
 iso_value = isoValue(tree, samples, x);
 
 w = 2^-maxDepth;
@@ -110,7 +111,7 @@ U3 = double((U3 - 0.5) * scale - T(3));
 [F,V] = MarchingCubes(U1, U2, U3, Z, iso_value);
 time(5) = toc() - time(4);
 % figure
-% p = patch(isosurface(U1, U2, U3, Z, iso_value));
+% p = patch(isosurface(U1, U2, U3, Z, iso_value-0.02));
 % isonormals(U1, U2, U3, Z, p)
 % p.FaceColor = 'red';
 % p.EdgeColor = 'none';

@@ -17,8 +17,8 @@ for i = 1:N
         if dx <= 0 || dx > Len || dy <= 0 || dy > Len || dz <= 0 || dz > Len
             continue;
         end
-        F_i = valueTable{d}(dx,2) * valueTable{d}(dy,2) * valueTable{d}(dz,2);
-        F_i = F_i * 8^(tree.depth(j));
-        X(i) = X(i) + x(i) * F_i;
+        F_j = valueTable{d}(dx,2) * valueTable{d}(dy,2) * valueTable{d}(dz,2);
+        F_j = F_j * 8^d;
+        X(i) = X(i) + x(j) * F_j;
     end
 end

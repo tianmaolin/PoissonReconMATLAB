@@ -42,6 +42,8 @@ b = setConstantTerms(tree, samples, weights);
 time(3) = toc() - time(2);
 
 % Solve the Linear System
+% We need refine octree and hanging node to ensure convergence.
+% Though I have not found any wrong reconstruction so far without them :).
 % x = cgs(A, b);
 x = A \ b;
 time(4) = toc() - time(3);
@@ -64,11 +66,11 @@ if verbose
 %     plot3(samples.Location(:,1), samples.Location(:,2), weight, '.')
 %     title('Weight')
 
-    figure, hold on
-    plot(tree.center(:,1), tree.center(:,2), '.')
-    plot(samples.Location(:,1), samples.Location(:,2), '.')
-    legend('tree', 'samples')
-    title('Input Points and Tree Center')
+%     figure, hold on
+%     plot(tree.center(:,1), tree.center(:,2), '.')
+%     plot(samples.Location(:,1), samples.Location(:,2), '.')
+%     legend('tree', 'samples')
+%     title('Input Points and Tree Center')
 
     figure
     spy(A)

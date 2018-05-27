@@ -17,7 +17,7 @@ for i = 1:N
         if dx <= 0 || dx > Len || dy <= 0 || dy > Len
             continue;
         end
-        F_i = valueTable{d}(dx,2) * valueTable{d}(dy,2) / (tree.width(j))^2;
-        X(i) = X(i) + x(i) * F_i;
+        F_j = valueTable{d}(dx,2) * valueTable{d}(dy,2) / (tree.width(j))^2;
+        X(i) = X(i) + x(j) * F_j;
     end
 end

@@ -35,8 +35,17 @@ tree.isbound = false(tree.Count,1);
 tree.isbound(tree.center(:,1)+tree.width/2 == 1 | tree.center(:,1)-tree.width/2 == 0 |...
     tree.center(:,2)+tree.width/2 == 1 | tree.center(:,2)-tree.width/2 == 0 |...
     tree.center(:,3)+tree.width/2 == 1 | tree.center(:,3)-tree.width/2 == 0) = true;
-
 samples.tree_ind = OT.PointBins;
+
+% Sort myTree, it may be no useful.
+[tree.center, index] = sortrows(tree.center);
+tree.width = tree.width(index);
+tree.depth = tree.depth(index);
+tree.isbound = tree.isbound(index);
+for s = 1:samples.Count
+    samples.tree_ind(s) = find(samples.tree_ind(s)==index, 1);
+end
+
 tree.sample_ind = cell(tree.Count,1);
 for k = 1:tree.Count
     tree.sample_ind{k} = find(samples.tree_ind == k);

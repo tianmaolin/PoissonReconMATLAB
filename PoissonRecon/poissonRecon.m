@@ -21,7 +21,7 @@ if maxDepth < minDepth
 end
 
 % addpath ..\3rdpart\OcTree % OcTreeModified.m
-addpath ..\3rdpart\MarchingCubes
+% addpath ..\3rdpart\MarchingCubes
 addpath ..\3rdpart\STL_Export
 
 degree = 2;
@@ -54,50 +54,8 @@ time(4) = toc() - time(3);
 % scaleFactor, FEM_Basis_dim, weight_Basis_dim, weight_depth, weight_div,
 % b_div, grid_div, iso_div, X_div, \, cgs(). Refer to c++
 
-% TODO: Is it possible to show the detail of 3-D Poisson Reconstruction?
-% % Show
-% if verbose
-%     
-% %     figure
-% %     quiver(ptCloud2d.Location(:,1), ptCloud2d.Location(:,2), ptCloud2d.Normal(:,1), ptCloud2d.Normal(:,2))
-% %     title('Input Oriented Points'), legend([num2str(ptCloud2d.Count), ' Points'])
-% 
-% %     figure
-% %     fnplt(bspline(0 : degree + 1))
-% %     title('B-Spline')
-%     
-% %     figure
-% %     plot3(samples.Location(:,1), samples.Location(:,2), weight, '.')
-% %     title('Weight')
-% 
-%     figure, hold on
-%     plot(tree.center(:,1), tree.center(:,2), '.')
-%     plot(samples.Location(:,1), samples.Location(:,2), '.')
-%     legend('tree', 'samples')
-%     title('Input Points and Tree Center')
-% 
-%     figure
-%     spy(A)
-%     title('Coefficients of Linear System')
-%     legend(['size: ', num2str(size(A,1)), ' * ', num2str(size(A,1))])
-% 
-%     figure, hold on
-%     truncB = max(abs(quantile(b(b~=0),[0.25, 0.75])));
-%     plot3(tree.center(:,1), tree.center(:,2), b,'.')
-%     plot3(tree.center(b<-truncB,1), tree.center(b<-truncB,2), b(b<-truncB),'o')
-%     plot3(tree.center(b>truncB,1), tree.center(b>truncB,2), b(b>truncB),'*')
-%     legend('', ['b < ', num2str(-truncB)], ['b > ', num2str(truncB)])
-%     title('Constant Terms of Linear System')
-%    
-% %     figure
-% %     plot3(tree.center(:,1), tree.center(:,2), x,'.')
-% %     title('Solution of Linear System')
-% 
-% end
-
 % Extract IsoSurface from x
 X = basisSum(tree, x);
-% TODO: isoValue() is too big!
 iso_value = isoValue(tree, samples, x);
 
 w = 2^-maxDepth;
@@ -108,20 +66,12 @@ Z = griddata(double(tree.center(:,1)), double(tree.center(:,2)), double(tree.cen
 U1 = double((U1 - 0.5) * scale - T(1));
 U2 = double((U2 - 0.5) * scale - T(2));
 U3 = double((U3 - 0.5) * scale - T(3));
-[F,V] = MarchingCubes(U1, U2, U3, Z, iso_value);
-time(5) = toc() - time(4);
-% figure
-% p = patch(isosurface(U1, U2, U3, Z, iso_value-0.02));
-% isonormals(U1, U2, U3, Z, p)
-% p.FaceColor = 'red';
-% p.EdgeColor = 'none';
-% daspect([1 1 1])
-% view(3);
-% axis tight
-% camlight
-% lighting gouraud
-% title('IsoSurface')
-% time(5) = toc();
+% % MarchingCubes' quality is not good, though it is fast.
+% [F,V] = MarchingCubes(U1, U2, U3, Z, iso_value);
+% time(5) = toc() - time(4);
+figure
+[F, V] = isosurface(U1, U2, U3, Z, iso_value);
+time(5) = toc();
 
 if verbose
 %     figure, hold on
@@ -129,6 +79,17 @@ if verbose
 %     plot3(tree.center(X>iso_value, 1), tree.center(X>iso_value, 2), X(X>iso_value),'*')
 %     legend('\chi < isovalue', '\chi > isovalue'), title('\chi')
     
+    p = patch('Faces',F,'Vertices',V);
+    isonormals(U1, U2, U3, Z, p)
+    p.FaceColor = 'red';
+    p.EdgeColor = 'none';
+    daspect([1 1 1])
+    view(3);
+    axis tight
+    camlight
+    lighting gouraud
+    title('IsoSurface')
+
     figure
     spy(A)
     title('Coefficients of Linear System')

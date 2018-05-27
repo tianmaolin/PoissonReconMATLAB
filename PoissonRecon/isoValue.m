@@ -15,7 +15,7 @@ for s = 1:samples.Count
             continue;
         end
         F_i = valueTable{d}(dx,2) * valueTable{d}(dy,2) * valueTable{d}(dz,2);
-        F_i = F_i * 8^(tree.depth(m));
+        F_i = F_i * 8^d;
         v = v + x(m) * F_i;
     end
 end

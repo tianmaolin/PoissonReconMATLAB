@@ -70,7 +70,7 @@ U3 = double((U3 - 0.5) * scale - T(3));
 % [F,V] = MarchingCubes(U1, U2, U3, Z, iso_value);
 % time(5) = toc() - time(4);
 figure
-[F, V] = isosurface(U1, U2, U3, Z, iso_value);
+[F, V] = isosurface(U1, U2, U3, Z, iso_value, 'verbose');
 time(5) = toc();
 
 if verbose

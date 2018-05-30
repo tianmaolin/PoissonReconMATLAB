@@ -3,11 +3,12 @@
 %
 % Maolin Tian, Tongji University, 2018
 
-ptCloud = pcread('..\data\shpere_uniform_2000.ply');
-% data: shpere_uniform_2000.ply, horse_part.ply, horse.points.ply, bunny.points.ply, eagle.points.ply
+ptCloud = pcread('..\data\horse.points.ply');
+% data: shpere_uniform.ply, horse.points.ply, bunny.points.ply, eagle.points.ply
 % ptCloud = pcread('..\data\TjHand1_0600_2100_points.ply');
-ptCloud1 = pcdownsample(ptCloud, 'random', 0.25);
-ptCloud2 = pcdownsample(ptCloud, 'random', 0.25);% ptCloud1 intersect ptCloud2 is small enough.
+ptCloud1 = pointCloud(ptCloud.Location(1:2:end,:), 'Normal', ptCloud.Normal(1:2:end,:));
+ptCloud2 = pointCloud(ptCloud.Location(2:2:end,:), 'Normal', ptCloud.Normal(2:2:end,:));
+% ptCloud2 = pcdownsample(ptCloud, 'random', 0.25);% ptCloud1 intersect ptCloud2 is small enough.
 minDepth = 4; % max voxel width = 2^-minDepth
 maxDepth = 5;
 verbose = true;
@@ -17,16 +18,23 @@ verbose = true;
 [F,V] = poissonRecon(ptCloud1, minDepth, maxDepth, verbose);
 
 % error
-kdOBJ = KDTreeSearcher(V);
-[match, mindist] = knnsearch(kdOBJ,ptCloud2.Location);
+P1 = V;
+P2 = ptCloud2.Location;
+kdOBJ = KDTreeSearcher(P1);
+[match, mindist] = knnsearch(kdOBJ, P2);
+% The dist is from ptCloud2 to V of surface. when depth is small, V does not
+% approximate surface, so the figure has lattice texture.
 error = sqrt(mean(mindist.^2));
 disp('error =')
 disp(error)
-% errorPlot = scatter3( ptCloud2.Location(:,1), ptCloud2.Location(:,2), ptCloud2.Location(:,3), [], mindist , '.');
+axis equal, hold on
+% scatter3( V(:,1), V(:,2), V(:,3),'.');
+scatter3( P2(mindist>1.5*error,1), P2(mindist>1.5*error,2), P2(mindist>1.5*error,3),'*');
+% errorPlot = scatter3( V(:,1), V(:,2), V(:,3), [], mindist , '.');
 % colormap jet
-% color = [mindist/error/2,zeros(length(mindist),1),max(2*error - mindist,0)/error/2];
-% cPointCloud = pointCloud(ptCloud2.Location,'Normal',ptCloud2.Normal,'Color',color);
-% pcwrite(cPointCloud,'..\data\error.ply');
+color = [mindist/error/2,zeros(length(mindist),1),max(2*error - mindist,0)/error/2];
+cPointCloud = pointCloud(P2,'Color',color);
+pcwrite(cPointCloud,'..\data\error.ply');
 
 % % make pointCloud of a shpere
 % 

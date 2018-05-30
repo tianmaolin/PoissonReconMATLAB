@@ -69,7 +69,6 @@ U3 = double((U3 - 0.5) * scale - T(3));
 % % MarchingCubes' quality is not good, though it is fast.
 % [F,V] = MarchingCubes(U1, U2, U3, Z, iso_value);
 % time(5) = toc() - time(4);
-figure
 [F, V] = isosurface(U1, U2, U3, Z, iso_value, 'verbose');
 time(5) = toc();
 
@@ -79,6 +78,12 @@ if verbose
 %     plot3(tree.center(X>iso_value, 1), tree.center(X>iso_value, 2), X(X>iso_value),'*')
 %     legend('\chi < isovalue', '\chi > isovalue'), title('\chi')
     
+    figure
+    spy(A)
+    title('Coefficients of Linear System')
+    legend(['size: ', num2str(size(A,1)), ' * ', num2str(size(A,1))])
+
+    figure
     p = patch('Faces',F,'Vertices',V);
     isonormals(U1, U2, U3, Z, p)
     p.FaceColor = 'red';
@@ -89,11 +94,6 @@ if verbose
     camlight
     lighting gouraud
     title('IsoSurface')
-
-    figure
-    spy(A)
-    title('Coefficients of Linear System')
-    legend(['size: ', num2str(size(A,1)), ' * ', num2str(size(A,1))])
 
     disp(['Set tree:              ',    num2str(time(1))])
     disp(['Got kernel density:    ',	num2str(time(2))])

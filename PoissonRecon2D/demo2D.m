@@ -3,19 +3,22 @@
 %
 % Maolin Tian, Tongji University, 2018
 
-% ptCloud = ptCloudExample2D('circle', 100);
+% ptCloud = ptCloudExample2D('circle', 1000);
+% ptCloud = ptCloudExample2D('circleNoError', 1000);
 % ptCloud = ptCloudExample2D('Armadillo');
 ptCloud = ptCloudExample2D('Dragon');
 % ptCloud = ptCloudDownsaple;
-minDepth = 6; % grid size = [2^depth, 2^depth]
-maxDepth = 8;
-verbose = true;
+ptCloud1 = pointCloud2D(ptCloud.Location(1:2:end,:), ptCloud.Normal(1:2:end,:));
+ptCloud2 = pointCloud2D(ptCloud.Location(2:2:end,:), ptCloud.Normal(2:2:end,:));
+minDepth = 5; % grid size = [2^depth, 2^depth]
+maxDepth = 6;
+verbose = false;
 
 figure
-plot(ptCloud.Location(:,1), ptCloud.Location(:,2), '.')
+plot(ptCloud1.Location(:,1), ptCloud1.Location(:,2), '.')
 title('Input Point Cloud')
 
-Contour = poissonRecon2D(ptCloud, minDepth, maxDepth, verbose);
+Contour = poissonRecon2D(ptCloud1, minDepth, maxDepth, verbose);
 if Contour(2,1) == size(Contour, 2) - 1
     disp('Number of Isoline Pieces: ')
 else
@@ -23,7 +26,24 @@ else
 end
 disp(Contour(2, 1))
 
-
+% error
+L = 1;
+V = [];
+while(true)
+    V = [V, Contour(:,L + 1:L + Contour(2,L))];
+    L = L + Contour(2,L) + 1;
+    if L >= size(Contour,2)
+        break
+    end
+end
+kdOBJ = KDTreeSearcher(V');
+[match, mindist] = knnsearch(kdOBJ, ptCloud2.Location);
+error = sqrt(mean(mindist.^2));
+disp('error =')
+disp(error)
+hold on, axis equal
+% plot(V(:,1), V(:,2), '.')
+plot(ptCloud2.Location(mindist>1.5*error,1), ptCloud2.Location(mindist>1.5*error,2), '*')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function ptCloud2D = ptCloudExample2D(model, N)

@@ -20,7 +20,7 @@ v = [v; v + off;       v;       v; v - off];
 v(u<=0) = [];u(u<=0) = [];
 u(v<=0) = [];v(v<=0) = [];
 v(u>N) = [];u(u>N) = [];
-u(u>N) = [];v(u>N) = [];
+u(v>N) = [];v(v>N) = [];
 A = sparse(u, v,1);
 A(A>1) = 1;
 A = full(A);
@@ -53,7 +53,11 @@ tree.depth = -round(log2(tree.width));
 tree.center = [rem(ind-1,N),ceil(ind/N)-1] * w + 0.5*tree.width;
 tree.isbound = false(tree.Count,1);
 tree.isbound(tree.center(:,1)+tree.width/2 == 1 | tree.center(:,2)+tree.width/2 == 1 | ...
-    tree.center(:,1)-tree.width/2 == 0 | tree.center(:,2)-tree.width/2 == 0) = true;
+    tree.center(:,1)-tree.width/2 == 0 | tree.center(:,2)-tree.width/2 == 0 | ...
+    tree.center(:,1)+tree.width*3/2 == 1 | tree.center(:,2)+tree.width*3/2 == 1 | ...
+    tree.center(:,1)-tree.width*3/2 == 0 | tree.center(:,2)-tree.width*3/2 == 0) = true;
+% tree.isbound(tree.center(:,1)+tree.width/2 == 1 | tree.center(:,2)+tree.width/2 == 1 | ...
+%     tree.center(:,1)-tree.width/2 == 0 | tree.center(:,2)-tree.width/2 == 0) = true;
 
 tree.sample_ind = cell(tree.Count,1);
 samples.tree_ind = zeros(samples.Count,1);

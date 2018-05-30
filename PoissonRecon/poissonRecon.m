@@ -32,7 +32,7 @@ global valueTable dotTable dotdTable ddotdTable
 % TODO: robotics.OccupancyMap3D class
 time = zeros(5, 1);
 tic;
-[pc, T, scale] = normalization(pointCloud, 1.5);
+[pc, T, scale] = normalization(pointCloud, 1.1);
 pc = pcdownsample(pc,'gridAverage', 2^(-maxDepth));
 samples = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
 [tree,samples] = setTree(samples, minDepth, maxDepth);

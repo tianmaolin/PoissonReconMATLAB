@@ -26,7 +26,8 @@ for i = 1:N
         con = con + 1;
         I(con) = i;
         J(con) = i;
-        V(con) = 1;
+%         V(con) = 1;
+        V(con) = 1e7;
         continue;
     end
     for j = tree.ngbr{i}'

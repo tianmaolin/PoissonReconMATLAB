@@ -27,7 +27,7 @@ global valueTable dotTable dotdTable ddotdTable
 % Create Tree and Samples
 time = zeros(5, 1);
 tic;
-[pc, T, scale] = normalization(ptCloud2d, 1.5);
+[pc, T, scale] = normalization(ptCloud2d, 1.1);
 pc = pcdownsample2D(pc, 2^(-maxDepth-1));
 samples = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
 [tree,samples] = setTree(samples, minDepth, maxDepth);

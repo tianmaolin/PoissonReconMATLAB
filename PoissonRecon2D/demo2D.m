@@ -4,14 +4,15 @@
 % Maolin Tian, Tongji University, 2018
 
 % ptCloud = ptCloudExample2D('circle', 1000);
+ptCloud = ptCloudExample2D('triangleNoError', 500);
 % ptCloud = ptCloudExample2D('circleNoError', 1000);
 % ptCloud = ptCloudExample2D('Armadillo');
-ptCloud = ptCloudExample2D('Dragon');
+% ptCloud = ptCloudExample2D('Dragon');
 % ptCloud = ptCloudDownsaple;
 ptCloud1 = pointCloud2D(ptCloud.Location(1:2:end,:), ptCloud.Normal(1:2:end,:));
 ptCloud2 = pointCloud2D(ptCloud.Location(2:2:end,:), ptCloud.Normal(2:2:end,:));
-minDepth = 5; % grid size = [2^depth, 2^depth]
-maxDepth = 6;
+minDepth = 4; % grid size = [2^depth, 2^depth]
+maxDepth = 5;
 verbose = false;
 
 figure
@@ -36,32 +37,16 @@ while(true)
         break
     end
 end
-kdOBJ = KDTreeSearcher(V');
-[match, mindist] = knnsearch(kdOBJ, ptCloud2.Location);
-error = sqrt(mean(mindist.^2));
-disp('error =')
-disp(error)
+[error, dist] = errorEstimate(V', ptCloud2.Location);
 hold on, axis equal
 % plot(V(:,1), V(:,2), '.')
-plot(ptCloud2.Location(mindist>1.5*error,1), ptCloud2.Location(mindist>1.5*error,2), '*')
+plot(ptCloud2.Location(dist>2*error,1), ptCloud2.Location(dist>2*error,2), '*')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function ptCloud2D = ptCloudExample2D(model, N)
 %ptCloud2D make 2D pointCloud examples
 %
 % Maolin Tian, Tongji University, 2018
-
-% if model == 'circle'
-% dt = pi / round(N);
-% % alpha = [0:2*dt:pi/2-dt, pi/2:2*dt:3/2*pi-dt, 3/2*pi:dt:2*pi-dt];
-% alpha = 0:2*dt:2*pi-dt;
-% x = cos(alpha);
-% y = sin(alpha);
-% location = [x(:), y(:)];
-% normal = - [x(:), y(:)];
-% ptCloud2D = pointCloud2D(location, normal);
-% return
-% end
 
 if strcmp(model,'triangle')
     x0 = 0:1/N:1;
@@ -76,6 +61,18 @@ if strcmp(model,'triangle')
     ptCloud2D = pointCloud2D(location, normal);
     ptCloud2D = AddNoise(ptCloud2D, 0.001);
     
+elseif strcmp(model,'triangleNoError')
+    x0 = 0:1/N:1;
+    y0 = 1 - x0;
+    x = [x0, x0, zeros(1, length(x0))];
+    y = [zeros(1, length(x0)), y0, y0];
+    location = [x(:), y(:)];
+    n1 = repmat([0,1], length(x0),1);
+    n2 = repmat([-sqrt(2)/2, -sqrt(2)/2],length(x0),1);
+    n3 = repmat([1,0], length(x0),1);
+    normal = [n1; n2; n3];
+    ptCloud2D = pointCloud2D(location, normal);
+   
 elseif strcmp(model,'circleNoError')
     dt = pi / round(N);
     alpha = 0:2*dt:2*pi-dt;

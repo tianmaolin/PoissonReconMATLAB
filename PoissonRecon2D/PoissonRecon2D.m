@@ -13,6 +13,13 @@ function C = poissonRecon2D(ptCloud2d, minDepth, maxDepth, verbose)
 %
 % Maolin Tian, Tongji University, 2018
 
+% TODO: 法线权重要考虑点分布的不均匀性（除以位置权重）
+% TODO: 效果考虑对比C++版本的
+% TODO: —Adaptive refinement of the octree based on residuals measured
+% at coarser levels, to allow the output mesh complexity to adapt
+% not only to sampling density but also to solution quality.
+
+
 if nargin < 4
     verbose = false;
 end
@@ -27,7 +34,7 @@ global valueTable dotTable dotdTable ddotdTable
 % Create Tree and Samples
 time = zeros(5, 1);
 tic;
-[pc, T, scale] = normalization(ptCloud2d, 1.1);
+[pc, T, scale] = normalization(ptCloud2d, 1.3);
 pc = pcdownsample2D(pc, 2^(-maxDepth-1));
 samples = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
 [tree,samples] = setTree(samples, minDepth, maxDepth);
@@ -85,6 +92,20 @@ if verbose
     legend('', ['b < ', num2str(-truncB)], ['b > ', num2str(truncB)])
     title('Constant Terms of Linear System')
    
+%     figure, hold on
+%     res = abs(A * x - b);
+%     truncRes1 = quantile(res(res~=0), 0.9);
+%     truncRes2 = quantile(res(res~=0), 0.97);
+%     plot3(tree.center(:,1), tree.center(:,2), res,'.')
+%     plot3(tree.center(res>truncRes1 & res<=truncRes2,1), tree.center(res>truncRes1 & res<=truncRes2,2), res(res>truncRes1 & res<=truncRes2),'*')
+%     plot3(tree.center(res>truncRes2,1), tree.center(res>truncRes2,2), res(res>truncRes2),'ro')
+%     legend('', ['res > ', num2str(truncRes1)], ['res > ', num2str(truncRes2)])
+%     title('Residuals of Linear System')
+%     % The residuals of linear system are not significantly correlative with
+%     % the reconstruction error, so it is the error of building system that
+%     % introduces the actual error. (b in Ax = b is zero at corner because 
+%     % the normals there are almost inversely.)
+    
 %     figure
 %     plot3(tree.center(:,1), tree.center(:,2), x,'.')
 %     title('Solution of Linear System')
@@ -108,11 +129,11 @@ title('Isoline')
 time(5) = toc();
 
 if verbose
-    figure, hold on
-    plot3(tree.center(:,1), tree.center(:,2), X,'.')
-    plot3(tree.center(X>iso_value, 1), tree.center(X>iso_value, 2), X(X>iso_value),'*')
-    legend('\chi < isovalue', '\chi > isovalue'), title('\chi')
-    
+%     figure, hold on
+%     plot3(tree.center(:,1), tree.center(:,2), X,'.')
+%     plot3(tree.center(X>iso_value, 1), tree.center(X>iso_value, 2), X(X>iso_value),'*')
+%     legend('\chi < isovalue', '\chi > isovalue'), title('\chi')
+%     
     disp(['Set tree:        ',          	num2str(time(1))])
     disp(['Got kernel density:          ',	num2str(time(2))])
     disp(['Set FEM constraints:         ',	num2str(time(3))])

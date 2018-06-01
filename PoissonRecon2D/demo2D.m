@@ -3,15 +3,14 @@
 %
 % Maolin Tian, Tongji University, 2018
 
-% ptCloud = ptCloudExample2D('circle', 1000);
-ptCloud = ptCloudExample2D('triangleNoError', 500);
-% ptCloud = ptCloudExample2D('circleNoError', 1000);
+% ptCloud = ptCloudExample2D('triangle', 1000);
+% ptCloud = ptCloudExample2D('circle', 1000, 0.01);
 % ptCloud = ptCloudExample2D('Armadillo');
-% ptCloud = ptCloudExample2D('Dragon');
-% ptCloud = ptCloudDownsaple;
+ptCloud = ptCloudExample2D('Dragon');
+ptCloud = pcNormalized(ptCloud);
 ptCloud1 = pointCloud2D(ptCloud.Location(1:2:end,:), ptCloud.Normal(1:2:end,:));
 ptCloud2 = pointCloud2D(ptCloud.Location(2:2:end,:), ptCloud.Normal(2:2:end,:));
-minDepth = 4; % grid size = [2^depth, 2^depth]
+minDepth = 5; % grid size = [2^depth, 2^depth]
 maxDepth = 5;
 verbose = false;
 
@@ -30,20 +29,22 @@ disp(Contour(2, 1))
 % error
 L = 1;
 V = [];
+figure, hold on
 while(true)
+    plot(Contour(1,L + 1:L + Contour(2,L)),Contour(2,L + 1:L + Contour(2,L)),'g')
     V = [V, Contour(:,L + 1:L + Contour(2,L))];
     L = L + Contour(2,L) + 1;
     if L >= size(Contour,2)
         break
     end
 end
-[error, dist] = errorEstimate(V', ptCloud2.Location);
+[error, dist] = getError(V', ptCloud2.Location);
 hold on, axis equal
 % plot(V(:,1), V(:,2), '.')
-plot(ptCloud2.Location(dist>2*error,1), ptCloud2.Location(dist>2*error,2), '*')
+plot(ptCloud2.Location(dist>1.2*error,1), ptCloud2.Location(dist>1.2*error,2), '*')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function ptCloud2D = ptCloudExample2D(model, N)
+function ptCloud2D = ptCloudExample2D(model, N, noise)
 %ptCloud2D make 2D pointCloud examples
 %
 % Maolin Tian, Tongji University, 2018
@@ -59,41 +60,18 @@ if strcmp(model,'triangle')
     n3 = repmat([1,0], length(x0),1);
     normal = [n1; n2; n3];
     ptCloud2D = pointCloud2D(location, normal);
-    ptCloud2D = AddNoise(ptCloud2D, 0.001);
-    
-elseif strcmp(model,'triangleNoError')
-    x0 = 0:1/N:1;
-    y0 = 1 - x0;
-    x = [x0, x0, zeros(1, length(x0))];
-    y = [zeros(1, length(x0)), y0, y0];
-    location = [x(:), y(:)];
-    n1 = repmat([0,1], length(x0),1);
-    n2 = repmat([-sqrt(2)/2, -sqrt(2)/2],length(x0),1);
-    n3 = repmat([1,0], length(x0),1);
-    normal = [n1; n2; n3];
-    ptCloud2D = pointCloud2D(location, normal);
    
-elseif strcmp(model,'circleNoError')
+elseif strcmp(model,'circle')
     dt = pi / round(N);
+%    alpha = [0:3*dt:pi/2-dt, pi/2:2*dt:3/2*pi-dt, 3/2*pi:10*dt:2*pi-dt];
+%    alpha = [0:dt:pi/2-dt, pi/2:4*dt:3/2*pi-dt, 3/2*pi:10*dt:13/8*pi];
     alpha = 0:2*dt:2*pi-dt;
     x = cos(alpha);
     y = sin(alpha);
     location = [x(:), y(:)];
     normal = - [x(:), y(:)];
     ptCloud2D = pointCloud2D(location, normal);
-    
-elseif strcmp(model,'circle')
-    dt = pi / round(N);
-%     alpha = [0:3*dt:pi/2-dt, pi/2:2*dt:3/2*pi-dt, 3/2*pi:10*dt:2*pi-dt];
-    alpha = [0:dt:pi/2-dt, pi/2:4*dt:3/2*pi-dt, 3/2*pi:10*dt:13/8*pi];
-    % alpha = 0:2*dt:2*pi-dt;
-    x = cos(alpha);
-    y = sin(alpha);
-    location = [x(:), y(:)];
-    normal = - [x(:), y(:)];
-    ptCloud2D = pointCloud2D(location, normal);
-    ptCloud2D = AddNoise(ptCloud2D, 0.05);
-    
+        
 elseif strcmp(model,'Armadillo')
     % Author: The Stanford 3D Scanning Repository
     ptCloud3D = pcread('..\data\Armadillo.ply');
@@ -124,11 +102,15 @@ elseif strcmp(model,'Dragon')
    
 end
 
+if nargin > 2
+    ptCloud2D = addNoise(ptCloud2D, noise);
+end
+
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function pcNoisy = AddNoise(ptCloud2D, e)
+function pcNoisy = addNoise(ptCloud2D, e)
 %AddNoise add noise to ptCloud2D
 % loc_e = loc + e * e1 * n + e/2 * e2 * t, normal_e = normal + e/2 * e3
 % e1, e2, e3 ~ Norm(0,1). t is vertical to normal.
@@ -142,4 +124,14 @@ ptCloud2D.Location = ptCloud2D.Location + e2 .* t;
 ptCloud2D.Normal = ptCloud2D.Normal + e3;
 ptCloud2D.Normal = ptCloud2D.Normal./(ptCloud2D.Normal(:,1).^2 + ptCloud2D.Normal(:,2).^2);
 pcNoisy = ptCloud2D;
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function ptCloud2D = pcNormalized(ptCloud2D)
+length = sqrt(ptCloud2D.Normal(:,1).^2 + ptCloud2D.Normal(:,2).^2);
+if find(length==0, 1)
+    error('normal == 0 !')
+end
+ptCloud2D.Normal = ptCloud2D.Normal ./ length;
 end

@@ -24,7 +24,7 @@ scatter3( ptCloud2.Location(dist>1.5*error,1), ptCloud2.Location(dist>1.5*error,
 % errorPlot = scatter3( V(:,1), V(:,2), V(:,3), [], dist , '.');
 % colormap jet
 % color = [dist/error/2,zeros(length(dist),1),max(2*error - dist,0)/error/2];
-% cPointCloud = pointCloud(P2,'Color',color);
+% cPointCloud = pointCloud(ptCloud2.Location,'Color',color);
 % pcwrite(cPointCloud,'..\data\error.ply');
 
 % % make pointCloud of a shpere

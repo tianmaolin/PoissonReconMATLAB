@@ -13,8 +13,8 @@ function C = poissonRecon2D(ptCloud2d, minDepth, maxDepth, verbose)
 %
 % Maolin Tian, Tongji University, 2018
 
-% TODO: 法线权重要考虑点分布的不均匀性（除以位置权重）
 % TODO: 效果考虑对比C++版本的
+% TODO: 列残差表说明它不是主要误差
 % TODO: —Adaptive refinement of the octree based on residuals measured
 % at coarser levels, to allow the output mesh complexity to adapt
 % not only to sampling density but also to solution quality.
@@ -35,15 +35,19 @@ global valueTable dotTable dotdTable ddotdTable
 time = zeros(5, 1);
 tic;
 [pc, T, scale] = normalization(ptCloud2d, 1.3);
-pc = pcdownsample2D(pc, 2^(-maxDepth-1));
+pc = pcdownsample2D(pc, 2^(-maxDepth-2));
 samples = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
-[tree,samples] = setTree(samples, minDepth, maxDepth);
+[tree,samples] = setTree(samples, zeros(samples.Count,1), minDepth, maxDepth);
 
 % Set the FEM Coefficients and Constant Terms
 % Paper: Kazhdan, Bolitho, and Hoppe. Poisson Surface Reconstruction. 2006
 time(1) = toc();
-weights = getWeight(samples, minDepth - 2 , maxDepth - 2);
+weights = getLocationWeight(samples, minDepth - 2 , maxDepth - 2);
+normalWeights = getNormalWeight(samples, weights, minDepth - 2, maxDepth - 2);
 time(2) = toc() - time(1);
+samples = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
+[tree,samples] = setTree(samples, normalWeights, minDepth, maxDepth);
+time(1) = toc() - time(2) + time(1);
 A = setCoefficients(tree);
 b = setConstantTerms(tree, samples, weights);
 time(3) = toc() - time(2);
@@ -70,8 +74,11 @@ if verbose
 %     title('B-Spline')
     
 %     figure
-%     plot3(samples.Location(:,1), samples.Location(:,2), weight, '.')
-%     title('Weight')
+%     plot3(samples.Location(:,1), samples.Location(:,2), weights, '.')
+%     title('Local Density')
+%     figure
+%     plot3(samples.Location(:,1), samples.Location(:,2), normalWeights, '.')
+%     title('Local Average Normal')
 
 %     figure, hold on
 %     plot(tree.center(:,1), tree.center(:,2), '.')

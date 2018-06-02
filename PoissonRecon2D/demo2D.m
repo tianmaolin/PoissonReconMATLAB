@@ -4,15 +4,15 @@
 % Maolin Tian, Tongji University, 2018
 
 % ptCloud = ptCloudExample2D('triangle', 1000);
-% ptCloud = ptCloudExample2D('circle', 1000, 0.01);
+% ptCloud = ptCloudExample2D('circle', 1000);
 % ptCloud = ptCloudExample2D('Armadillo');
 ptCloud = ptCloudExample2D('Dragon');
 ptCloud = pcNormalized(ptCloud);
 ptCloud1 = pointCloud2D(ptCloud.Location(1:2:end,:), ptCloud.Normal(1:2:end,:));
 ptCloud2 = pointCloud2D(ptCloud.Location(2:2:end,:), ptCloud.Normal(2:2:end,:));
 minDepth = 5; % grid size = [2^depth, 2^depth]
-maxDepth = 5;
-verbose = false;
+maxDepth = 9; % it is better to less than 10
+verbose = true;
 
 figure
 plot(ptCloud1.Location(:,1), ptCloud1.Location(:,2), '.')

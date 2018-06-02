@@ -1,8 +1,4 @@
-function [tree, samples] = setTree(samples, minDepth, maxDepth)
-
-global treeDim
-treeDim = [1,2^(maxDepth - minDepth)];
-
+function [tree, samples] = setTree(samples, normalWeight, minDepth, maxDepth)
 
 % TODO: use classdef to save memory
 location = samples.Location;
@@ -12,23 +8,39 @@ u = ceil(double(location(:,1) / w));
 v = ceil(double(location(:,2) / w));
 % A = sparse(u, v, 1);
 % make tree nodes more around points
-off = 1;
+off = [1,2,4];
 % u = [u,       u, u + off, u + off, u - off,       u, u - off];
 % v = [v, v + off,       v, v + off,       v, v - off, v - off];
-u = [u;       u; u + off; u - off;       u];
-v = [v; v + off;       v;       v; v - off];
+u = [u, u + 0*off, u +   off, u -   off, u - 0*off];
+v = [v, v +   off, v + 0*off, v - 0*off, v -   off];
 v(u<=0) = [];u(u<=0) = [];
 u(v<=0) = [];v(v<=0) = [];
 v(u>N) = [];u(u>N) = [];
 u(v>N) = [];v(v>N) = [];
-A = sparse(u, v,1);
-A(A>1) = 1;
+A = sparse(u, v, 2);
+A(A>2) = 2;
 A = full(A);
+for s = 1:samples.Count
+    su = ceil(double(location(s,1) / w));
+    sv = ceil(double(location(s,2) / w));
+    A(su, sv) = min(A(su, sv), 1 + normalWeight(s));
+    off = [1,2,4];
+    A(su+off(off<=N-su), sv) = min(A(su, sv+off(off<=N-sv)), 1 + normalWeight(s));
+    A(su, sv+off(off<=N-sv)) = min(A(su, sv+off(off<=N-sv)), 1 + normalWeight(s));
+    A(su-off(off<su), sv) = min(A(su-off(off<su), sv), 1 + normalWeight(s));
+    A(su, sv-off(off<sv)) = min(A(su, sv-off(off<sv)), 1 + normalWeight(s));
+end
+% If max(block in A) = 2^(n-1), it split at minDepth+n.
+% norm([1,0] + [0,1])/2 = 0.7071, -- pi/2
+% norm([1,0] + [sqrt(2)/2, sqrt(2)/2])/2 = 0.9239 -- 3/4*pi
+A(A < 1.71 & A >= 1) = 2^(maxDepth - minDepth - 1);
+A(A < 1.93 & A >= 1.71) = 2^(maxDepth - minDepth - 2);
+A(A <= 2 & A >= 1.93) = 2^(maxDepth - minDepth - 3);
 A(N,N)=0;
 
 
 % quadtree decomposition
-S = qtdecomp(A, @splitMax);
+S = qtdecompModified(A, [], [1 2^(maxDepth - minDepth)]);
 % S = qtdecomp(A,0.5,[1,2^(maxDepth - minDepth)]);
 
 % blocks = repmat(uint8(0),size(S));
@@ -84,25 +96,3 @@ for k = 1:tree.Count
 end
 
 end
-
-    
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% function dosplit = QTDECOMP_Split(A, threshold, dims)
-% 
-% maxVals = max(max(A,[],1),[],2);
-% minVals = min(min(A,[],1),[],2);
-% dosplit = (double(maxVals) - double(minVals)) > threshold;
-% 
-% dosplit = (dosplit & (size(A,1) > dims(1))) | (size(A,2) > dims(2));
-% end
-function dosplit = splitMax(A)
-
-global treeDim
-maxVals = max(max(A,[],1),[],2);
-dosplit = double(maxVals) > 0.5;
-
-dosplit = (dosplit & (size(A,1) > treeDim(1))) | (size(A,2) > treeDim(2));
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

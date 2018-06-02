@@ -3,7 +3,7 @@
 %
 % Maolin Tian, Tongji University, 2018
 
-% ptCloud = ptCloudExample2D('triangle', 1000);
+% ptCloud = ptCloudExample2D('triangle', 2000, 0.01);
 % ptCloud = ptCloudExample2D('circle', 1000);
 % ptCloud = ptCloudExample2D('Armadillo');
 ptCloud = ptCloudExample2D('Dragon');
@@ -14,9 +14,9 @@ minDepth = 5; % grid size = [2^depth, 2^depth]
 maxDepth = 9; % it is better to less than 10
 verbose = true;
 
-figure
-plot(ptCloud1.Location(:,1), ptCloud1.Location(:,2), '.')
-title('Input Point Cloud')
+% figure
+% plot(ptCloud1.Location(:,1), ptCloud1.Location(:,2), '.')
+% title('Input Point Cloud')
 
 Contour = poissonRecon2D(ptCloud1, minDepth, maxDepth, verbose);
 if Contour(2,1) == size(Contour, 2) - 1
@@ -42,6 +42,9 @@ end
 hold on, axis equal
 % plot(V(:,1), V(:,2), '.')
 plot(ptCloud2.Location(dist>1.2*error,1), ptCloud2.Location(dist>1.2*error,2), '*')
+figure
+hist(dist) 
+% dist is norm distribution rather than have extreme when adaptive without normal.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function ptCloud2D = ptCloudExample2D(model, N, noise)

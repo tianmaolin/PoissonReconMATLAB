@@ -6,7 +6,7 @@ if maxDepth < minDepth
 end
 
 global valueTable
-[tree,samples] = setTree(samples, zeros(samples.Count,1), minDepth, maxDepth);
+[tree,samples] = setTree(samples, minDepth, maxDepth);
 weights = zeros(samples.Count, 1);
 for s1 = 1:samples.Count
     n1 = samples.tree_ind(s1);

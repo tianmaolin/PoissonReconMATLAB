@@ -4,6 +4,10 @@ function ptCloud2D = pointCloud2D(location, normal)
 if size(location) ~= size(normal)
     error('Size of location is not equal to normal!')
 end
+if isempty(location)
+    ptCloud2D = struct('Location',[],'Normal',[],'Count',0,'XLimits',[],'YLimits',[],'dim',2);
+    return
+end
 if size(location, 2) ~= 2
     error('The number of columns must be 2 !')
 end

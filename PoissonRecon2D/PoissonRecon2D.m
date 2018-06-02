@@ -34,23 +34,54 @@ global valueTable dotTable dotdTable ddotdTable
 % Create Tree and Samples
 time = zeros(5, 1);
 tic;
-[pc, T, scale] = normalization(ptCloud2d, 1.3);
-pc = pcdownsample2D(pc, 2^(-maxDepth-2));
-samples = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
-[tree,samples] = setTree(samples, zeros(samples.Count,1), minDepth, maxDepth);
+samW = 2^(-maxDepth+1);
+[ptCloud2d, T, scale] = normalization(ptCloud2d, 1.3);
+pc = pcdownsample2D(ptCloud2d, samW);
+s0 = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
+[~,s0] = setTree(s0, minDepth, maxDepth);
+time(1) = toc();
+
+% Get weights
+weights = getLocationWeight(s0, minDepth - 2 , maxDepth - 2);
+normalWeights = getNormalWeight(s0, weights, minDepth - 2, maxDepth - 2);
+id2 = (find(normalWeights < 0.93 & normalWeights >= 0.71))';
+id3 = (find(normalWeights < 0.71))';
+time(2) = toc() - time(1);
+
+%  Reset ( refine ) tree
+tic
+location = [];
+normal = [];
+for s = id2
+    id = ptCloud2d.Location(:,1) < s0.Location(s,1)+samW & ptCloud2d.Location(:,1) > s0.Location(s,1)-samW &...
+        ptCloud2d.Location(:,2) < s0.Location(s,2)+samW & ptCloud2d.Location(:,2) > s0.Location(s,2)-samW;
+    location = [location; ptCloud2d.Location(id,:)];
+    normal = [normal; ptCloud2d.Normal(id,:)];
+end
+pc2 = pcdownsample2D(pointCloud2D(location,normal), 2^(-maxDepth));
+for s = id3
+    id = ptCloud2d.Location(:,1) < s0.Location(s,1)+samW & ptCloud2d.Location(:,1) > s0.Location(s,1)-samW &...
+        ptCloud2d.Location(:,2) < s0.Location(s,2)+samW & ptCloud2d.Location(:,2) > s0.Location(s,2)-samW;
+    location = [location; ptCloud2d.Location(id,:)];
+    normal = [normal; ptCloud2d.Normal(id,:)];
+end
+pc3 = pcdownsample2D(pointCloud2D(location,normal), 2^(-maxDepth-1));
+[location, ia] = unique([pc.Location;pc2.Location;pc3.Location],'stable','rows');
+normal = [pc.Normal;pc2.Normal;pc3.Normal];
+normal = normal(ia,:);
+samples = pointCloud2D(location, normal);
+[tree,samples] = setTree(samples, minDepth, maxDepth, id2, id3);
+time(1) = toc() + time(1);
 
 % Set the FEM Coefficients and Constant Terms
 % Paper: Kazhdan, Bolitho, and Hoppe. Poisson Surface Reconstruction. 2006
-time(1) = toc();
+tic
 weights = getLocationWeight(samples, minDepth - 2 , maxDepth - 2);
-normalWeights = getNormalWeight(samples, weights, minDepth - 2, maxDepth - 2);
-time(2) = toc() - time(1);
-samples = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
-[tree,samples] = setTree(samples, normalWeights, minDepth, maxDepth);
-time(1) = toc() - time(2) + time(1);
+time(2) = toc() + time(2);
+tic
 A = setCoefficients(tree);
 b = setConstantTerms(tree, samples, weights);
-time(3) = toc() - time(2);
+time(3) = toc();
 
 % Solve the Linear System
 % We need refine octree and hanging node to ensure convergence.
@@ -140,9 +171,9 @@ if verbose
 %     plot3(tree.center(:,1), tree.center(:,2), X,'.')
 %     plot3(tree.center(X>iso_value, 1), tree.center(X>iso_value, 2), X(X>iso_value),'*')
 %     legend('\chi < isovalue', '\chi > isovalue'), title('\chi')
-%     
-    disp(['Set tree:        ',          	num2str(time(1))])
-    disp(['Got kernel density:          ',	num2str(time(2))])
+    
+    disp(['Set tree:                    ',  num2str(time(1))])
+    disp(['Got weight:                  ',	num2str(time(2))])
     disp(['Set FEM constraints:         ',	num2str(time(3))])
     disp(['Linear system solved:        ',	num2str(time(4))])
     disp(['Got piecewise linear curve:  ',	num2str(time(5))])
@@ -179,6 +210,11 @@ end
 
 function ptCloudNormalized = pcdownsample2D(ptCloud, width)
 %pcdownsample2D Downsample the 2-D ptCloud
+if ptCloud.Count == 0
+    ptCloudNormalized = ptCloud;
+    return
+end
+
 location = [ptCloud.Location,zeros(ptCloud.Count,1)];
 normal = [ptCloud.Normal,zeros(ptCloud.Count,1)];
 

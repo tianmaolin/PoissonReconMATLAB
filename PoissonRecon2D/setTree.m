@@ -1,14 +1,15 @@
-function [tree, samples] = setTree(samples, normalWeight, minDepth, maxDepth)
+function [tree, samples] = setTree(samples, minDepth, maxDepth, depth3Id, depth2Id)
 
 % TODO: use classdef to save memory
 location = samples.Location;
 N = 2^maxDepth;
+dD = maxDepth - minDepth;
 w = 1/N;
 u = ceil(double(location(:,1) / w));
 v = ceil(double(location(:,2) / w));
 % A = sparse(u, v, 1);
 % make tree nodes more around points
-off = [1,2,4];
+off = 3;
 % u = [u,       u, u + off, u + off, u - off,       u, u - off];
 % v = [v, v + off,       v, v + off,       v, v - off, v - off];
 u = [u, u + 0*off, u +   off, u -   off, u - 0*off];
@@ -18,26 +19,51 @@ u(v<=0) = [];v(v<=0) = [];
 v(u>N) = [];u(u>N) = [];
 u(v>N) = [];v(v>N) = [];
 A = sparse(u, v, 2);
-A(A>2) = 2;
-A = full(A);
-for s = 1:samples.Count
-    su = ceil(double(location(s,1) / w));
-    sv = ceil(double(location(s,2) / w));
-    A(su, sv) = min(A(su, sv), 1 + normalWeight(s));
-    off = [1,2,4];
-    A(su+off(off<=N-su), sv) = min(A(su, sv+off(off<=N-sv)), 1 + normalWeight(s));
-    A(su, sv+off(off<=N-sv)) = min(A(su, sv+off(off<=N-sv)), 1 + normalWeight(s));
-    A(su-off(off<su), sv) = min(A(su-off(off<su), sv), 1 + normalWeight(s));
-    A(su, sv-off(off<sv)) = min(A(su, sv-off(off<sv)), 1 + normalWeight(s));
+if nargin < 4
+    A(A > 1) = 2^(dD-1);
+    A = full(A);
+else
+    A(A>2) = 2^(dD - 3);
+    A = full(A);
+    for s = depth2Id
+        % Suppose old samples used to get weight is new samples(1:N)
+        su = ceil(double(location(s,1) / w));
+        sv = ceil(double(location(s,2) / w));
+        A(su, sv) = 2^(dD - 2);
+        off = [4,8];
+        A(su+off(off<=N-su), sv) = 2^(dD - 2);
+        A(su, sv+off(off<=N-sv)) = 2^(dD - 2);
+        A(su-off(off<su), sv) = 2^(dD - 2);
+        A(su, sv-off(off<sv)) = 2^(dD - 2);
+        off = 4;
+        A(su+off(off<=N-su & off<=N-sv), sv+off(off<=N-su & off<=N-sv)) = 2^(dD - 2);
+        A(su+off(off<=N-su & off <  sv), sv-off(off<=N-su & off <  sv)) = 2^(dD - 2);
+        A(su-off(off <  su & off<=N-sv), sv+off(off <  su & off<=N-sv)) = 2^(dD - 2);
+        A(su-off(off <  su & off <  sv), sv-off(off <  su & off <  sv)) = 2^(dD - 2);
+    end
+    for s = depth3Id
+        su = ceil(double(location(s,1) / w));
+        sv = ceil(double(location(s,2) / w));
+        A(su, sv) = 2^(dD - 1);
+        off = 2;
+        A(su+off(off<=N-su), sv) = 2^(dD - 1);
+        A(su, sv+off(off<=N-sv)) = 2^(dD - 1);
+        A(su-off(off<su), sv) = 2^(dD - 1);
+        A(su, sv-off(off<sv)) = 2^(dD - 1);
+        off = 1;
+        A(su+off(off<=N-su & off<=N-sv), sv+off(off<=N-su & off<=N-sv)) = 2^(dD - 1);
+        A(su+off(off<=N-su & off <  sv), sv-off(off<=N-su & off <  sv)) = 2^(dD - 1);
+        A(su-off(off <  su & off<=N-sv), sv+off(off <  su & off<=N-sv)) = 2^(dD - 1);
+        A(su-off(off <  su & off <  sv), sv-off(off <  su & off <  sv)) = 2^(dD - 1);
+    end
+    % If max(block in A) = 2^(n-1), it split at minDepth+n.
+    % norm([1,0] + [0,1])/2 = 0.7071, -- pi/2
+    % norm([1,0] + [sqrt(2)/2, sqrt(2)/2])/2 = 0.9239 -- 3/4*pi
+%     A(A < 1.71 & A >= 1) = 2^(dD - 1);
+%     A(A < 1.93 & A >= 1.71) = 2^(dD - 2);
+%     A(A <= 2 & A >= 1.93) = 2^(dD - 3);
 end
-% If max(block in A) = 2^(n-1), it split at minDepth+n.
-% norm([1,0] + [0,1])/2 = 0.7071, -- pi/2
-% norm([1,0] + [sqrt(2)/2, sqrt(2)/2])/2 = 0.9239 -- 3/4*pi
-A(A < 1.71 & A >= 1) = 2^(maxDepth - minDepth - 1);
-A(A < 1.93 & A >= 1.71) = 2^(maxDepth - minDepth - 2);
-A(A <= 2 & A >= 1.93) = 2^(maxDepth - minDepth - 3);
 A(N,N)=0;
-
 
 % quadtree decomposition
 S = qtdecompModified(A, [], [1 2^(maxDepth - minDepth)]);

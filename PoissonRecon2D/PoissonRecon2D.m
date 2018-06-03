@@ -35,7 +35,7 @@ global valueTable dotTable dotdTable ddotdTable
 time = zeros(5, 1);
 tic;
 samW = 2^(-maxDepth+1);
-[ptCloud2d, T, scale] = normalization(ptCloud2d, 1.3);
+[ptCloud2d, T, scale] = normalization(ptCloud2d, 1.2);
 pc = pcdownsample2D(ptCloud2d, samW);
 s0 = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
 [~,s0] = setTree(s0, minDepth, maxDepth);
@@ -44,33 +44,26 @@ time(1) = toc();
 % Get weights
 weights = getLocationWeight(s0, minDepth - 2 , maxDepth - 2);
 normalWeights = getNormalWeight(s0, weights, minDepth - 2, maxDepth - 2);
-id2 = (find(normalWeights < 0.93 & normalWeights >= 0.71))';
-id3 = (find(normalWeights < 0.71))';
+featureId = (find(normalWeights < 0.924))';
+% norm([1,0] + [sqrt(2)/2, sqrt(2)/2])/2 = 0.9239 --- 3/4*pi
 time(2) = toc() - time(1);
 
 %  Reset ( refine ) tree
 tic
 location = [];
 normal = [];
-for s = id2
+for s = featureId
     id = ptCloud2d.Location(:,1) < s0.Location(s,1)+samW & ptCloud2d.Location(:,1) > s0.Location(s,1)-samW &...
         ptCloud2d.Location(:,2) < s0.Location(s,2)+samW & ptCloud2d.Location(:,2) > s0.Location(s,2)-samW;
     location = [location; ptCloud2d.Location(id,:)];
     normal = [normal; ptCloud2d.Normal(id,:)];
 end
 pc2 = pcdownsample2D(pointCloud2D(location,normal), 2^(-maxDepth));
-for s = id3
-    id = ptCloud2d.Location(:,1) < s0.Location(s,1)+samW & ptCloud2d.Location(:,1) > s0.Location(s,1)-samW &...
-        ptCloud2d.Location(:,2) < s0.Location(s,2)+samW & ptCloud2d.Location(:,2) > s0.Location(s,2)-samW;
-    location = [location; ptCloud2d.Location(id,:)];
-    normal = [normal; ptCloud2d.Normal(id,:)];
-end
-pc3 = pcdownsample2D(pointCloud2D(location,normal), 2^(-maxDepth-1));
-[location, ia] = unique([pc.Location;pc2.Location;pc3.Location],'stable','rows');
-normal = [pc.Normal;pc2.Normal;pc3.Normal];
-normal = normal(ia,:);
+[location, id] = unique([pc.Location;pc2.Location],'stable','rows');
+normal = [pc.Normal;pc2.Normal];
+normal = normal(id,:);
 samples = pointCloud2D(location, normal);
-[tree,samples] = setTree(samples, minDepth, maxDepth, id2, id3);
+[tree,samples] = setTree(samples, minDepth, maxDepth, featureId);
 time(1) = toc() + time(1);
 
 % Set the FEM Coefficients and Constant Terms
@@ -176,7 +169,8 @@ if verbose
     disp(['Got weight:                  ',	num2str(time(2))])
     disp(['Set FEM constraints:         ',	num2str(time(3))])
     disp(['Linear system solved:        ',	num2str(time(4))])
-    disp(['Got piecewise linear curve:  ',	num2str(time(5))])
+    disp(['Got piecewise linear curve:  ',	num2str(time(5)-time(1))])
+    disp(['Total time:                  ',	num2str(sum(time))])
 %     disp(['Linear system size:        ',	num2str(size(A,1)), ' * ', num2str(size(A,1))])
     disp(' ')
    

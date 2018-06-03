@@ -1,5 +1,5 @@
-function [tree, samples] = setTree(samples, minDepth, maxDepth, featureId)
-%setTree Set Tree. Support higher depth on feature ID.
+function [tree, samples] = setTree(samples, minDepth, maxDepth, feature)
+%setTree Set Tree. Support higher depth on feature points.
 
 % TODO: use classdef to save memory
 location = samples.Location;
@@ -32,10 +32,10 @@ else
     A = sparse(u, v, 2);
     A(A>=2) = 2^(dD - 2);
     A = full(A);
-    for s = featureId
+    for i = 1:size(feature,1)
         % Suppose old samples used to get weight is new samples(1:N)
-        su = ceil(double(location(s,1) / w));
-        sv = ceil(double(location(s,2) / w));
+        su = ceil(double(feature(i,1) / w));
+        sv = ceil(double(feature(i,2) / w));
         A(su, sv) = 2^(dD - 1);
         off = 1;
         A(su+off(off<=N-su), sv) = 2^(dD - 1);

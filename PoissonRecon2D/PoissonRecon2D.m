@@ -36,14 +36,15 @@ time = zeros(5, 1);
 tic;
 [ptCloud2d, T, scale] = normalization(ptCloud2d, 1.3);
 pc = pcdownsample2D(ptCloud2d, 2^(-maxDepth+1));
-s0 = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
-[~,s0] = setTree(s0, minDepth, maxDepth);
+samp0 = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
+[tree0,samp0] = setTree(samp0, minDepth - 2, maxDepth - 2);
 time(1) = toc();
 
 % Get weights
-weights = getLocationWeight(s0, minDepth - 2 , maxDepth - 2);
-normalWeights = getNormalWeight(s0, weights, minDepth - 2, maxDepth - 2);
-feature = s0.Location(normalWeights < 0.924,:);
+weights = getLocationWeight(samp0, tree0);
+normalWeights = getNormalWeight(samp0, tree0, weights);
+feature = pc.Location(normalWeights < 0.924,:);
+% feature = pc.Location(normalWeights < -1,:);
 % norm([1,0] + [sqrt(2)/2, sqrt(2)/2])/2 = 0.9239 --- 3/4*pi
 time(2) = toc() - time(1);
 
@@ -51,7 +52,7 @@ time(2) = toc() - time(1);
 tic
 location = [];
 normal = [];
-samW = 2^(-maxDepth+1);
+samW = 2^-maxDepth;
 for s = 1:size(feature,1)
     id = ptCloud2d.Location(:,1) < feature(s,1)+samW & ptCloud2d.Location(:,1) > feature(s,1)-samW &...
         ptCloud2d.Location(:,2) < feature(s,2)+samW & ptCloud2d.Location(:,2) > feature(s,2)-samW;
@@ -65,12 +66,13 @@ end
 pc2 = pcdownsample2D(pointCloud2D(location,normal), 2^(-maxDepth));
 samples = pointCloud2D([pc.Location;pc2.Location], [pc.Normal;pc2.Normal]);
 [tree,samples] = setTree(samples, minDepth, maxDepth, feature);
+[tree1,samp1] = setTree(samples, minDepth - 2, maxDepth - 2);
 time(1) = toc() + time(1);
 
 % Set the FEM Coefficients and Constant Terms
 % Paper: Kazhdan, Bolitho, and Hoppe. Poisson Surface Reconstruction. 2006
 tic
-weights = getLocationWeight(samples, minDepth - 2 , maxDepth - 2);
+weights = getLocationWeight(samp1, tree1);
 time(2) = toc() + time(2);
 tic
 A = setCoefficients(tree);

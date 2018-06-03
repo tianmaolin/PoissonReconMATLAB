@@ -1,4 +1,4 @@
-function [F,V] = poissonRecon(pointCloud, minDepth, maxDepth, verbose)
+function [F,V] = poissonRecon(ptCloud, minDepth, maxDepth, verbose)
 %PoissonRecon Perform the Poisson Surface Reconstruction algorithm.
 %
 % pointCloud:   Oriented points, specified as a pointCloud object.
@@ -32,16 +32,50 @@ global valueTable dotTable dotdTable ddotdTable
 % TODO: robotics.OccupancyMap3D class
 time = zeros(5, 1);
 tic;
-[pc, T, scale] = normalization(pointCloud, 1.1);
-pc = pcdownsample(pc,'gridAverage', 2^(-maxDepth));
-samples = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
-[tree,samples] = setTree(samples, minDepth, maxDepth);
+[ptCloud, T, scale] = normalization(ptCloud, 1.2);
+pc = pcdownsample(ptCloud,'gridAverage', 2^(-maxDepth+1));
+samp0 = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
+[tree0,samp0] = setTree(samp0, minDepth - 2, maxDepth - 2);
 time(1) = toc();
+
+% Get weights
+maxNormW = 0.708;
+weights = getLocationWeight(samp0, tree0);
+normalWeights = getNormalWeight(samp0, tree0, weights);
+feature = samp0.Location(normalWeights < maxNormW,:);
+% norm([1,0] + [sqrt(2)/2, sqrt(2)/2])/2 = 0.9239 --- 3/4*pi
+time(2) = toc() - time(1);
+
+%  Reset ( refine ) tree
+tic
+location = [];
+normal = [];
+samW = 2^-maxDepth;
+for s = 1:size(feature,1)
+    id = ptCloud.Location(:,1) < feature(s,1)+samW & ptCloud.Location(:,1) > feature(s,1)-samW &...
+        ptCloud.Location(:,2) < feature(s,2)+samW & ptCloud.Location(:,2) > feature(s,2)-samW &...
+        ptCloud.Location(:,3) < feature(s,3)+samW & ptCloud.Location(:,3) > feature(s,3)-samW;
+    location = [location; ptCloud.Location(id,:)];
+    normal = [normal; ptCloud.Normal(id,:)];
+    id = samp0.Location(:,1) < feature(s,1)+samW & samp0.Location(:,1) > feature(s,1)-samW &...
+        samp0.Location(:,2) < feature(s,2)+samW & samp0.Location(:,2) > feature(s,2)-samW &...
+        samp0.Location(:,3) < feature(s,3)+samW & samp0.Location(:,3) > feature(s,3)-samW;
+    samp0.Location(id,:) = [];
+    samp0.Normal(id,:) = [];
+end
+pc2 = pcdownsample(pointCloud(location, 'Normal', normal), 'gridAverage', 2^(-maxDepth));
+samples = struct('Count', size(samp0.Location,1) + size(pc2.Location,1), 'Location', [samp0.Location;pc2.Location],'Normal', [samp0.Normal;pc2.Normal]);
+pointsFeature = [false(size(samp0.Location,1),1); true(size(pc2.Location,1),1)];
+[tree,samples] = setTree(samples, minDepth, maxDepth, pointsFeature);
+[tree1,samp1] = setTree(samples, minDepth - 2, maxDepth - 2);
+time(1) = toc() + time(1);
 
 % Set the FEM Coefficients and Constant Terms
 % Paper: Kazhdan, Bolitho, and Hoppe. Poisson Surface Reconstruction. 2006
-weights = getWeight(samples, minDepth - 2 , maxDepth - 2);
-time(2) = toc() - time(1);
+tic
+weights = getLocationWeight(samp1, tree1);
+time(2) = toc() + time(2);
+tic
 A = setCoefficients(tree);
 b = setConstantTerms(tree, samples, weights);
 time(3) = toc() - time(2);
@@ -101,11 +135,13 @@ if verbose
     disp(['Linear system solved:  ',	num2str(time(4))])
     disp(['Extract isosurface:    ',	num2str(time(5))])
 %     disp(['Linear system size:        ',	num2str(size(A,1)), ' * ', num2str(size(A,1))])
-    disp(' ')
    
 end
-
-STL_Export(V, F, '..\data\recon_result.stl','hahahaha');
+disp(['Total Time:    ',	num2str(sum(time)-time(1))])
+disp(' ')
+solid = ['TotalTime:', num2str(sum(time)-time(1)),...
+    ',MinDepth:', num2str(minDepth), ',MaxDepth:', num2str(maxDepth)];
+STL_Export(V, F, '..\data\recon_result.stl', solid);
 
 end
 

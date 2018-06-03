@@ -1,5 +1,9 @@
 function [tree, samples] = setTree(samples, minDepth, maxDepth, feature)
 %setTree Set Tree. Support higher depth on feature points.
+if minDepth < 0
+    minDepth = 0;
+    warning('minDepth < 0 !')
+end
 
 % TODO: use classdef to save memory
 location = samples.Location;

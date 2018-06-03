@@ -1,14 +1,8 @@
-function weights = getWeight(samples, minDepth, maxDepth)
+function weights = getLocationWeight(samples, tree)
 %getWeight weight_s = \sum_{s\in S} 1/s.w^3 b_{s.w}(x-s.x) b_{s.w}(y-s.y)
 %b_{s.w}(z-s.z)
 
-if maxDepth < minDepth
-    disp('maxDepth < minDepth !')
-    return;
-end
-
 global valueTable
-[tree,samples] = setTree(samples, minDepth, maxDepth);
 weights = zeros(samples.Count, 1);
 for s1 = 1:samples.Count
     n1 = samples.tree_ind(s1);

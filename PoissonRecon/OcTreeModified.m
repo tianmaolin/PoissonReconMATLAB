@@ -90,6 +90,9 @@ classdef OcTreeModified < handle
         BinDepths;
         BinParents = zeros(0,1);
         Properties;
+        % Split feature point at higher depth.
+        PointFeature;
+        BinFeature;
     end
     
     methods
@@ -108,6 +111,7 @@ classdef OcTreeModified < handle
             this.BinDepths = 0;
             this.BinParents(1) = 0;
             this.BinCount = 1;
+            this.BinFeature = 0;
             
             % Allow custom setting of Properties
             IP = inputParser;
@@ -116,8 +120,15 @@ classdef OcTreeModified < handle
             IP.addParameter('maxSize',inf);
             IP.addParameter('minSize',1000 * eps);
             IP.addParameter('style','equal');
+            IP.addParameter('feature',[]);
+            IP.addParameter('hasFeature',false);
             IP.parse(varargin{:});
             this.Properties = IP.Results;
+            if ~isempty(this.Properties.feature)
+                this.Properties.hasFeature = true;
+                this.PointFeature = this.Properties.feature;
+            end
+            clear this.Properties.feature
             
             % Return on empty or trivial bins
             if numPts<2, return; end
@@ -140,11 +151,13 @@ classdef OcTreeModified < handle
             this.BinDepths(numBins) = 0;
             this.BinParents(numBins) = 0;
             this.BinBoundaries(numBins,1) = 0;
+            this.BinFeature(numBins) = 0;
         end
         function deallocateSpace(this)
             this.BinDepths(this.BinCount+1:end) = [];
             this.BinParents(this.BinCount+1:end) = [];
             this.BinBoundaries(this.BinCount+1:end,:) = [];
+            this.BinFeature(this.BinCount+1:end) = [];
         end
         
         function divide(this, startingBins)
@@ -152,8 +165,10 @@ classdef OcTreeModified < handle
             for i = 1:length(startingBins)
                 binNo = startingBins(i);
                 
-                % Prevent dividing beyond the maximum depth
-                if this.BinDepths(binNo)+1 >= this.Properties.maxDepth
+                % Prevent dividing beyond the maximum depth - isFeature
+                if this.Properties.hasFeature && this.BinDepths(binNo) >= this.Properties.maxDepth + this.BinFeature(binNo) - 2
+                    continue;
+                elseif (~this.Properties.hasFeature) && this.BinDepths(binNo)+1 >= this.Properties.maxDepth
                     continue;
                 end
                 
@@ -225,6 +240,18 @@ classdef OcTreeModified < handle
             this.BinParents(newBinInds) = binNo;
             this.PointBins(binPtMask) = newBinInds(binAssignment);
             this.BinCount = this.BinCount + 8;
+            if this.Properties.hasFeature
+                feature = this.PointFeature(binPtMask);
+                if isempty(feature)
+                    this.BinFeature(newBinInds) = false;
+                else
+                    feature = repmat(feature,1,8);
+                    this.BinFeature(newBinInds) = any(feature(binAssignment==1:8), 1);
+%                 for i = 1:8
+%                     this.BinFeature(newBinInds(i)) = any(feature(binAssignment==i));
+%                 end
+                end
+            end
         end
         
         function shrink(this)

@@ -1,12 +1,6 @@
-function weights = getLocationWeight(samples, minDepth, maxDepth)
-
-if maxDepth < minDepth
-    disp('maxDepth < minDepth !')
-    return;
-end
+function weights = getLocationWeight(samples, tree)
 
 global valueTable
-[tree,samples] = setTree(samples, minDepth, maxDepth);
 weights = zeros(samples.Count, 1);
 for s1 = 1:samples.Count
     n1 = samples.tree_ind(s1);

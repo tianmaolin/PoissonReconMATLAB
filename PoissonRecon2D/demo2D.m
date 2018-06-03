@@ -13,15 +13,16 @@ ptCloud2 = pointCloud2D(ptCloud.Location(2:2:end,:), ptCloud.Normal(2:2:end,:));
 minDepth = 5; % grid size = [2^depth, 2^depth]
 maxDepth = 7; % it is better to less than 10
 verbose = false;
+%    v2 depth 7 = v3 (maxNormalWeight=-1 and depth=8) or (maxNormalWeight=2 and depth=7)
 % example1: ptCloud = ptCloudExample2D('triangle', 2000,0.002);
 %           v3 depth: 4~6, v2 depth: 4~5,4~6
-% example1: ptCloud = ptCloudExample2D('Dragon');
-%           v3 depth: 5~7, v2 depth: 4~6,5~7
+% example2: ptCloud = ptCloudExample2D('Dragon');
+%           v3 depth: 5~7, v2 depth: 5~6,5~7
 
 % figure
 % plot(ptCloud1.Location(:,1), ptCloud1.Location(:,2), '.')
 % title('Input Point Cloud')
-disp(['v3, Max Depth:  ',  num2str(maxDepth)])
+disp(['v3, Depth:  ',  num2str(maxDepth)])
 
 Contour = poissonRecon2D(ptCloud1, minDepth, maxDepth, verbose);
 if Contour(2,1) == size(Contour, 2) - 1

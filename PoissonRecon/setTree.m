@@ -46,8 +46,16 @@ else
     location(location(:,1) <= 0 | location(:,1) >= 1 |...
         location(:,2) <= 0 | location(:,2) >= 1 |...
         location(:,3) <= 0 | location(:,3) >= 1 , :) = [];
-    pc1 = pcdownsample(pointCloud(location([feature;feature],:)),'gridAverage', off1);
-    pc2 = pcdownsample(pointCloud(location(~[feature;feature],:)),'gridAverage', off2);
+    if any(feature)
+        pc1 = pcdownsample(pointCloud(location([feature;feature],:)),'gridAverage', off1);
+    else
+        pc1 = pointCloud(location([feature;feature],:));
+    end
+    if all(feature)
+        pc2 = pointCloud(location(~[feature;feature],:));
+    else
+        pc2 = pcdownsample(pointCloud(location(~[feature;feature],:)),'gridAverage', off2);
+    end
     location = [pc1.Location;pc2.Location];
     location = [location; 0 0 0;1 1 1];
     feature = [feature; true(pc1.Count,1); false(pc2.Count,1); false; false];

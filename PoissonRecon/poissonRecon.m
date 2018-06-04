@@ -32,16 +32,17 @@ global valueTable dotTable dotdTable ddotdTable
 % TODO: robotics.OccupancyMap3D class
 time = zeros(5, 1);
 tic;
-[ptCloud, T, scale] = normalization(ptCloud, 1.2);
+[ptCloud, T, scale] = normalization(ptCloud, 1.1);
 pc = pcdownsample(ptCloud,'gridAverage', 2^(-maxDepth+1));
 samp0 = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
 [tree0,samp0] = setTree(samp0, minDepth - 2, maxDepth - 2);
 time(1) = toc();
 
 % Get weights
-maxNormW = 0.708;
 weights = getLocationWeight(samp0, tree0);
 normalWeights = getNormalWeight(samp0, tree0, weights);
+maxNormW = 2;
+% maxNormW = mean(normalWeights);
 feature = samp0.Location(normalWeights < maxNormW,:);
 % norm([1,0] + [sqrt(2)/2, sqrt(2)/2])/2 = 0.9239 --- 3/4*pi
 time(2) = toc() - time(1);
@@ -63,7 +64,11 @@ for s = 1:size(feature,1)
     samp0.Location(id,:) = [];
     samp0.Normal(id,:) = [];
 end
-pc2 = pcdownsample(pointCloud(location, 'Normal', normal), 'gridAverage', 2^(-maxDepth));
+if isempty(location)
+    pc2 = pointCloud(location, 'Normal', normal);
+else
+    pc2 = pcdownsample(pointCloud(location, 'Normal', normal), 'gridAverage', 2^(-maxDepth));
+end
 samples = struct('Count', size(samp0.Location,1) + size(pc2.Location,1), 'Location', [samp0.Location;pc2.Location],'Normal', [samp0.Normal;pc2.Normal]);
 pointsFeature = [false(size(samp0.Location,1),1); true(size(pc2.Location,1),1)];
 [tree,samples] = setTree(samples, minDepth, maxDepth, pointsFeature);
@@ -96,7 +101,7 @@ w = 2^-maxDepth;
 U1 = w/2:w:1-w/2;
 [U1,U2,U3]= meshgrid(U1, U1, U1);
 Z = griddata(double(tree.center(:,1)), double(tree.center(:,2)), double(tree.center(:,3))...
-    , X, U1, U2, U3, 'linear');
+    , X, U1, U2, U3, 'natural');
 U1 = double((U1 - 0.5) * scale - T(1));
 U2 = double((U2 - 0.5) * scale - T(2));
 U3 = double((U3 - 0.5) * scale - T(3));
@@ -137,7 +142,10 @@ if verbose
 %     disp(['Linear system size:        ',	num2str(size(A,1)), ' * ', num2str(size(A,1))])
    
 end
-disp(['Total Time:    ',	num2str(sum(time)-time(1))])
+disp(['Total Time:    ',	num2str(sum(time)-time(1)-time(5))])
+% In practice, the time of setting tree does not dominate the actual
+% running time. Extract isosurface time is o(s^3), because it's not
+% adaptive. It makes no sense.
 disp(' ')
 solid = ['TotalTime:', num2str(sum(time)-time(1)),...
     ',MinDepth:', num2str(minDepth), ',MaxDepth:', num2str(maxDepth)];

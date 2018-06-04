@@ -3,3 +3,5 @@
 *.ply
 *.stl
 *.png
+*.fig
+*.mat

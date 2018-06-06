@@ -41,8 +41,8 @@ time(1) = toc();
 % Get weights
 weights = getLocationWeight(samp0, tree0);
 normalWeights = getNormalWeight(samp0, tree0, weights);
-maxNormW = 2;
-% maxNormW = mean(normalWeights);
+% maxNormW = 2;
+maxNormW = min(mean(normalWeights),0.8);
 feature = samp0.Location(normalWeights < maxNormW,:);
 % norm([1,0] + [sqrt(2)/2, sqrt(2)/2])/2 = 0.9239 --- 3/4*pi
 time(2) = toc() - time(1);

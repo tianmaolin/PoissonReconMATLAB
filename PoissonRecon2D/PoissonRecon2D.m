@@ -172,12 +172,14 @@ if verbose
     disp(['Got weight:                  ',	num2str(time(2))])
     disp(['Set FEM constraints:         ',	num2str(time(3))])
     disp(['Linear system solved:        ',	num2str(time(4))])
-    disp(['Got piecewise linear curve:  ',	num2str(time(5)-time(1))])
-	% In practice, the time of setting tree does not dominate the actual running time.
+    disp(['Got piecewise linear curve:  ',	num2str(time(5))])
 %     disp(['Linear system size:        ',	num2str(size(A,1)), ' * ', num2str(size(A,1))])
    
 end
-    disp(['Total time:                  ',	num2str(sum(time))])
+% In practice, the time of setting tree does not dominate the actual
+% running time. Extract isosurface time is o(s^3), because it's not
+% adaptive. It makes no sense.
+    disp(['Total time:                  ',	num2str(sum(time)-time(1)-time(5))])
     disp(' ')
     
 end

@@ -63,7 +63,7 @@ for s = 1:size(feature,1)
     pc.Location(id,:) = [];
     pc.Normal(id,:) = [];
 end
-pc2 = pcdownsample2D(pointCloud2D(location,normal), 2^(-maxDepth));
+pc2 = pcdownsample2D(pointCloud2D(location,normal), 2^-maxDepth);
 samples = pointCloud2D([pc.Location;pc2.Location], [pc.Normal;pc2.Normal]);
 [tree,samples] = setTree(samples, minDepth, maxDepth, feature);
 [tree1,samp1] = setTree(samples, minDepth - 2, maxDepth - 2);
@@ -179,6 +179,10 @@ end
 % In practice, the time of setting tree does not dominate the actual
 % running time. Extract isosurface time is o(s^3), because it's not
 % adaptive. It makes no sense.
+if ~verbose
+    disp(['Set tree:                    ',  num2str(time(1))])
+    disp(['Got piecewise linear curve:  ',	num2str(time(5))])
+end
     disp(['Total time:                  ',	num2str(sum(time)-time(1)-time(5))])
     disp(' ')
     
@@ -210,21 +214,16 @@ end
 
 function ptCloudNormalized = pcdownsample2D(ptCloud, width)
 %pcdownsample2D Downsample the 2-D ptCloud
+
 if ptCloud.Count == 0
     ptCloudNormalized = ptCloud;
     return
 end
 
-location = [ptCloud.Location,zeros(ptCloud.Count,1)];
-normal = [ptCloud.Normal,zeros(ptCloud.Count,1)];
+id = ceil(ptCloud.Location / width);
+[~ , ia] = unique(id,'rows');
 
-p = pointCloud(location,'Normal',normal);
-p = pcdownsample(p,'gridAverage',width);
-
-location = p.Location(:,1:2);
-normal = p.Normal(:,1:2);
-
-ptCloudNormalized = pointCloud2D(location, normal);
+ptCloudNormalized = pointCloud2D(ptCloud.Location(ia,:), ptCloud.Normal(ia,:));
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

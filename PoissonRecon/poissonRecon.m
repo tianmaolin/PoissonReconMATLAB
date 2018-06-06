@@ -33,7 +33,7 @@ global valueTable dotTable dotdTable ddotdTable
 time = zeros(5, 1);
 tic;
 [ptCloud, T, scale] = normalization(ptCloud, 1.1);
-pc = pcdownsample(ptCloud,'gridAverage', 2^(-maxDepth+1));
+pc = pcdownsampleConst(ptCloud, 2^(-maxDepth+1));
 samp0 = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
 [tree0,samp0] = setTree(samp0, minDepth - 2, maxDepth - 2);
 time(1) = toc();
@@ -67,7 +67,7 @@ end
 if isempty(location)
     pc2 = pointCloud(location, 'Normal', normal);
 else
-    pc2 = pcdownsample(pointCloud(location, 'Normal', normal), 'gridAverage', 2^(-maxDepth));
+    pc2 = pcdownsampleConst(pointCloud(location, 'Normal', normal), 2^(-maxDepth));
 end
 samples = struct('Count', size(samp0.Location,1) + size(pc2.Location,1), 'Location', [samp0.Location;pc2.Location],'Normal', [samp0.Normal;pc2.Normal]);
 pointsFeature = [false(size(samp0.Location,1),1); true(size(pc2.Location,1),1)];
@@ -108,7 +108,7 @@ U3 = double((U3 - 0.5) * scale - T(3));
 % % MarchingCubes' quality is not good, though it is fast.
 % [F,V] = MarchingCubes(U1, U2, U3, Z, iso_value);
 % time(5) = toc() - time(4);
-[F, V] = isosurface(U1, U2, U3, Z, iso_value, 'verbose');
+[F, V] = isosurface(U1, U2, U3, Z, iso_value);
 time(5) = toc();
 
 if verbose
@@ -142,12 +142,14 @@ if verbose
 %     disp(['Linear system size:        ',	num2str(size(A,1)), ' * ', num2str(size(A,1))])
    
 end
-disp(['Total Time:    ',	num2str(sum(time)-time(1)-time(5))])
-% In practice, the time of setting tree does not dominate the actual
-% running time. Extract isosurface time is o(s^3), because it's not
-% adaptive. It makes no sense.
-disp(' ')
-solid = ['TotalTime:', num2str(sum(time)-time(1)),...
+if ~verbose
+    disp(['Set tree:              ',    num2str(time(1))])
+    disp(['Extract isosurface:    ',	num2str(time(5))])
+    disp(['Total Time:            ',	num2str(sum(time) - time(5))])
+    disp(' ')
+end
+
+solid = ['TotalTime:', num2str(sum(time)-time(5)),...
     ',MinDepth:', num2str(minDepth), ',MaxDepth:', num2str(maxDepth)];
 STL_Export(V, F, '..\data\recon_result.stl', solid);
 
@@ -176,6 +178,23 @@ scale = scale * scaleFactor;
 location = ptCloud.Location + trans;
 location = location / scale + 0.5;
 ptCloudNormalized = pointCloud(location, 'Normal', ptCloud.Normal);
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function ptCloudOut = pcdownsampleConst(ptCloudIn, width)
+%pcdownsampleConst Downsample the 2-D ptCloud, unique points in a box.
+% pcdownsample changes data, resulting in error.
+
+if ptCloudIn.Count == 0
+    ptCloudOut = ptCloudIn;
+    return
+end
+
+id = ceil(ptCloudIn.Location / width);
+[~ , ia] = unique(id,'rows');
+
+ptCloudOut = pointCloud(ptCloudIn.Location(ia,:), 'Normal', ptCloudIn.Normal(ia,:));
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

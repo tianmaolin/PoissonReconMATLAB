@@ -85,9 +85,6 @@ time(3) = toc();
 % x = cgs(A, b);
 x = A \ b;
 time(4) = toc() - time(3);
-% TODO: test the influence on speed and effect(ptCloud.Count, depth) of
-% scaleFactor, FEM_Basis_dim, weight_Basis_dim, weight_depth, weight_div,
-% b_div, grid_div, iso_div, X_div, \, cgs(). Refer to c++
 
 % Show
 if verbose

@@ -1,15 +1,17 @@
 function [F,V] = poissonRecon(ptCloud, minDepth, maxDepth, verbose)
 %PoissonRecon Perform the Poisson Surface Reconstruction algorithm.
+% And support adaptive octree based on normal weights.
 %
-% pointCloud:   Oriented points, specified as a pointCloud object.
+%    ptCloud:   Oriented points, specified as a pointCloud object.
 %   minDepth:   Max grid width = 2^-minDepth
 %   maxDepth:   Min grid width = 2^-maxDepth
 %    verbose:   show the equation's matrix and reconstruction runtime
 %          F:   the face list of the resulting triangulated mesh
 %          V:   the vertex list of the resulting triangulated mesh
 %
-% There is not multigrid method. We use mldivide \ to solve equation. 
-% It uses 3-D Point Cloud Processing introduced in MATLAB R2015a.
+% There is not multigrid method. We use mldivide \ to solve equation.
+% This function uses 3-D Point Cloud Processing introduced in MATLAB R2015a,
+% 3rd part STL\_Export and OcTree (have been modified there) in MathWorks File Exchange.
 %
 % Maolin Tian, Tongji University, 2018
 
@@ -19,6 +21,8 @@ end
 if maxDepth < minDepth
     error('maxDepth < minDepth !')
 end
+
+% TODO: Why can not get a smoothing cube?
 
 % addpath ..\3rdpart\OcTree % OcTreeModified.m
 % addpath ..\3rdpart\MarchingCubes
@@ -83,15 +87,12 @@ time(2) = toc() + time(2);
 tic
 A = setCoefficients(tree);
 b = setConstantTerms(tree, samples, weights);
-time(3) = toc() - time(2);
+time(3) = toc();
 
 % Solve the Linear System
 % x = cgs(A, b);
 x = A \ b;
 time(4) = toc() - time(3);
-% TODO: test the influence on speed and effect(ptCloud.Count, depth) of
-% scaleFactor, FEM_Basis_dim, weight_Basis_dim, weight_depth, weight_div,
-% b_div, grid_div, iso_div, X_div, \, cgs(). Refer to c++
 
 % Extract IsoSurface from x
 X = basisSum(tree, x);
@@ -107,7 +108,8 @@ U2 = double((U2 - 0.5) * scale - T(2));
 U3 = double((U3 - 0.5) * scale - T(3));
 % % MarchingCubes' quality is not good, though it is fast.
 % [F,V] = MarchingCubes(U1, U2, U3, Z, iso_value);
-% time(5) = toc() - time(4);
+% time(5) = toc();
+tic
 [F, V] = isosurface(U1, U2, U3, Z, iso_value);
 time(5) = toc();
 
@@ -116,7 +118,11 @@ if verbose
 %     plot3(tree.center(:,1), tree.center(:,2), X,'.')
 %     plot3(tree.center(X>iso_value, 1), tree.center(X>iso_value, 2), X(X>iso_value),'*')
 %     legend('\chi < isovalue', '\chi > isovalue'), title('\chi')
-    
+    figure, hold on
+    plot3(samp0.Location(:,1), samp0.Location(:,2), samp0.Location(:,3), '.');
+    plot3(pc2.Location(:,1), pc2.Location(:,2), pc2.Location(:,3), '.');
+    title('Feature')
+
     figure
     spy(A)
     title('Coefficients of Linear System')
@@ -138,16 +144,13 @@ if verbose
     disp(['Got kernel density:    ',	num2str(time(2))])
     disp(['Set FEM constraints:   ',	num2str(time(3))])
     disp(['Linear system solved:  ',	num2str(time(4))])
-    disp(['Extract isosurface:    ',	num2str(time(5))])
-%     disp(['Linear system size:        ',	num2str(size(A,1)), ' * ', num2str(size(A,1))])
-   
+    disp(['Extract isosurface:    ',	num2str(time(5))])   
 end
 if ~verbose
-    disp(['Set tree:              ',    num2str(time(1))])
-    disp(['Extract isosurface:    ',	num2str(time(5))])
-    disp(['Total Time:            ',	num2str(sum(time) - time(5))])
-    disp(' ')
+    disp(['Extract isosurface:     ',	num2str(time(5))])
+    disp(['Total Time - isosurface:',	num2str(sum(time) - time(5))])
 end
+disp(' ')
 
 solid = ['TotalTime:', num2str(sum(time)-time(5)),...
     ',MinDepth:', num2str(minDepth), ',MaxDepth:', num2str(maxDepth)];

@@ -1,9 +1,11 @@
-function normalWeights = getNormalWeight(samples, tree, locationWeights)
-%getNormalWeight normalWeights(q) = sum_s F_s(q) / s.locationWeights * s.N
-%/ sum_s F_s(q) / s.locationWeights
+function curvatureField = getCurvatureField(samples, tree, locationWeights)
+%getCurvatureField curvatureField(q) = sum_s F_s(q) / s.samplingDensity * s.N
+% / sum_s F_s(q) / s.locationWeights
+% 
+% Maolin Tian, 2018
 
 global valueTable
-normalWeights = zeros(samples.Count, 2);
+curvatureField = zeros(samples.Count, 2);
 for s1 = 1:samples.Count
     n1 = samples.tree_ind(s1);
     weigthSum = 0;
@@ -20,8 +22,8 @@ for s1 = 1:samples.Count
         F_i = valueTable{d}(dx,2) * valueTable{d}(dy,2) / (tree.width(n2))^2;
         weigthSum = weigthSum + F_i / locationWeights(s2);
         F_i = F_i / locationWeights(s2) * samples.Normal(s2, :);
-        normalWeights(s1, :) = normalWeights(s1, :) + F_i;
+        curvatureField(s1, :) = curvatureField(s1, :) + F_i;
     end
-    normalWeights(s1, 1) = norm(normalWeights(s1, :)) / weigthSum;
+    curvatureField(s1, 1) = norm(curvatureField(s1, :)) / weigthSum;
 end
-normalWeights = normalWeights(:, 1);
+curvatureField = curvatureField(:, 1);

@@ -1,93 +1,72 @@
-function [F,V] = poissonRecon(ptCloud, minDepth, maxDepth, verbose)
+function [F,V] = poissonRecon(ptCloud, minDepth, maxDepth, verbose, curvatureRatio)
 %PoissonRecon Perform the Poisson Surface Reconstruction algorithm.
-% And support adaptive octree based on normal weights.
+% And support octree adaptive to surface curvature.
 %
 %    ptCloud:   Oriented points, specified as a pointCloud object.
 %   minDepth:   Max grid width = 2^-minDepth
 %   maxDepth:   Min grid width = 2^-maxDepth
 %    verbose:   show the equation's matrix and reconstruction runtime
+%curvatureRatio:the ratio of high curvature regions that have max depth
 %          F:   the face list of the resulting triangulated mesh
 %          V:   the vertex list of the resulting triangulated mesh
 %
-% There is not multigrid method. We use mldivide \ to solve equation.
+% There is not multigrid method. We use mldivide \ to solve equation here.
 % This function uses 3-D Point Cloud Processing introduced in MATLAB R2015a,
-% 3rd part STL\_Export and OcTree (have been modified there) in MathWorks File Exchange.
+% 3rd part STL\_Export and OcTree (modified) in MathWorks File Exchange.
 %
-% Maolin Tian, Tongji University, 2018
+% Maolin Tian, 2018
 
 if nargin < 4
     verbose = false;
 end
+if nargin < 5
+    curvatureRatio = 0.1;
+end
 if maxDepth < minDepth
     error('maxDepth < minDepth !')
 end
-
+if maxDepth > 7
+    warning('Depth is too big!')
+end
 % TODO: Why can not get a smoothing cube?
 
 % addpath ..\3rdpart\OcTree % OcTreeModified.m
 % addpath ..\3rdpart\MarchingCubes
 addpath ..\3rdpart\STL_Export
 
-degree = 2;
 global valueTable dotTable dotdTable ddotdTable
-[valueTable, dotTable, dotdTable, ddotdTable] = valueDotTable(degree, minDepth, maxDepth);
+[valueTable, dotTable, dotdTable, ddotdTable] = valueDotTable(minDepth, maxDepth);
 
-% Create octree and samples
+% Build octree and samples
 % TODO: robotics.OccupancyMap3D class
 time = zeros(5, 1);
 tic;
 [ptCloud, T, scale] = normalization(ptCloud, 1.1);
 pc = pcdownsampleConst(ptCloud, 2^(-maxDepth+1));
 samp0 = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
-[tree0,samp0] = setTree(samp0, minDepth - 2, maxDepth - 2);
-time(1) = toc();
+[tree1,samp1] = setTree(samp0, minDepth - 2, maxDepth - 2);
+weights = getSamplingDensity(samp1, tree1);
 
-% Get weights
-weights = getLocationWeight(samp0, tree0);
-normalWeights = getNormalWeight(samp0, tree0, weights);
-% maxNormW = 2;
-maxNormW = min(mean(normalWeights),0.8);
-feature = samp0.Location(normalWeights < maxNormW,:);
-% norm([1,0] + [sqrt(2)/2, sqrt(2)/2])/2 = 0.9239 --- 3/4*pi
-time(2) = toc() - time(1);
-
-%  Reset ( refine ) tree
-tic
-location = [];
-normal = [];
-samW = 2^-maxDepth;
-for s = 1:size(feature,1)
-    id = ptCloud.Location(:,1) < feature(s,1)+samW & ptCloud.Location(:,1) > feature(s,1)-samW &...
-        ptCloud.Location(:,2) < feature(s,2)+samW & ptCloud.Location(:,2) > feature(s,2)-samW &...
-        ptCloud.Location(:,3) < feature(s,3)+samW & ptCloud.Location(:,3) > feature(s,3)-samW;
-    location = [location; ptCloud.Location(id,:)];
-    normal = [normal; ptCloud.Normal(id,:)];
-    id = samp0.Location(:,1) < feature(s,1)+samW & samp0.Location(:,1) > feature(s,1)-samW &...
-        samp0.Location(:,2) < feature(s,2)+samW & samp0.Location(:,2) > feature(s,2)-samW &...
-        samp0.Location(:,3) < feature(s,3)+samW & samp0.Location(:,3) > feature(s,3)-samW;
-    samp0.Location(id,:) = [];
-    samp0.Normal(id,:) = [];
-end
-if isempty(location)
-    pc2 = pointCloud(location, 'Normal', normal);
+% Rebuild octree adaptive to surface curvature
+if curvatureRatio < 1
+    curvatureField = getCurvatureField(samp1, tree1, weights);
+    maxNormW = quantile(curvatureField, curvatureRatio);
+    feature = samp1.Location(curvatureField < maxNormW,:);
+    [samples, pointsFeature] = refineTreeAdaptiveToCurvature(ptCloud, samp1, maxDepth, feature);
+    [tree1,samp1] = setTree(samples, minDepth - 2, maxDepth - 2);
+    [tree, samples] = setTree(samples, minDepth, maxDepth, pointsFeature);
 else
-    pc2 = pcdownsampleConst(pointCloud(location, 'Normal', normal), 2^(-maxDepth));
+    [tree, samples] = setTree(samp0, minDepth, maxDepth);
 end
-samples = struct('Count', size(samp0.Location,1) + size(pc2.Location,1), 'Location', [samp0.Location;pc2.Location],'Normal', [samp0.Normal;pc2.Normal]);
-pointsFeature = [false(size(samp0.Location,1),1); true(size(pc2.Location,1),1)];
-[tree,samples] = setTree(samples, minDepth, maxDepth, pointsFeature);
-[tree1,samp1] = setTree(samples, minDepth - 2, maxDepth - 2);
-time(1) = toc() + time(1);
+time(1) = toc();
 
 % Set the FEM Coefficients and Constant Terms
 % Paper: Kazhdan, Bolitho, and Hoppe. Poisson Surface Reconstruction. 2006
-tic
-weights = getLocationWeight(samp1, tree1);
-time(2) = toc() + time(2);
-tic
+weights = getSamplingDensity(samp1, tree1);
+time(2) = toc() - time(1);
 A = setCoefficients(tree);
 b = setConstantTerms(tree, samples, weights);
-time(3) = toc();
+time(3) = toc() - time(2);
 
 % Solve the Linear System
 % x = cgs(A, b);
@@ -109,7 +88,6 @@ U3 = double((U3 - 0.5) * scale - T(3));
 % % MarchingCubes' quality is not good, though it is fast.
 % [F,V] = MarchingCubes(U1, U2, U3, Z, iso_value);
 % time(5) = toc();
-tic
 [F, V] = isosurface(U1, U2, U3, Z, iso_value);
 time(5) = toc();
 
@@ -118,27 +96,15 @@ if verbose
 %     plot3(tree.center(:,1), tree.center(:,2), X,'.')
 %     plot3(tree.center(X>iso_value, 1), tree.center(X>iso_value, 2), X(X>iso_value),'*')
 %     legend('\chi < isovalue', '\chi > isovalue'), title('\chi')
-    figure, hold on
-    plot3(samp0.Location(:,1), samp0.Location(:,2), samp0.Location(:,3), '.');
-    plot3(pc2.Location(:,1), pc2.Location(:,2), pc2.Location(:,3), '.');
-    title('Feature')
+%     figure, hold on
+%     plot3(samp1.Location(:,1), samp1.Location(:,2), samp1.Location(:,3), '.');
+%     plot3(pc2.Location(:,1), pc2.Location(:,2), pc2.Location(:,3), '.');
+%     title('Feature')
 
-    figure
-    spy(A)
-    title('Coefficients of Linear System')
-    legend(['size: ', num2str(size(A,1)), ' * ', num2str(size(A,1))])
-
-    figure
-    p = patch('Faces',F,'Vertices',V);
-    isonormals(U1, U2, U3, Z, p)
-    p.FaceColor = 'red';
-    p.EdgeColor = 'none';
-    daspect([1 1 1])
-    view(3);
-    axis tight
-    camlight
-    lighting gouraud
-    title('IsoSurface')
+%     figure
+%     spy(A)
+%     title('Coefficients of Linear System')
+%     legend(['size: ', num2str(size(A,1)), ' * ', num2str(size(A,1))])
 
     disp(['Set tree:              ',    num2str(time(1))])
     disp(['Got kernel density:    ',	num2str(time(2))])
@@ -146,15 +112,24 @@ if verbose
     disp(['Linear system solved:  ',	num2str(time(4))])
     disp(['Extract isosurface:    ',	num2str(time(5))])   
 end
-if ~verbose
-    disp(['Extract isosurface:     ',	num2str(time(5))])
-    disp(['Total Time - isosurface:',	num2str(sum(time) - time(5))])
-end
-disp(' ')
 
-solid = ['TotalTime:', num2str(sum(time)-time(5)),...
-    ',MinDepth:', num2str(minDepth), ',MaxDepth:', num2str(maxDepth)];
-STL_Export(V, F, '..\data\recon_result.stl', solid);
+    figure
+    pa = patch('Faces',F,'Vertices',V);
+    isonormals(U1, U2, U3, Z, pa)
+    pa.FaceColor = 'red';
+    pa.EdgeColor = 'none';
+    daspect([1 1 1])
+    view(3);
+    axis tight
+    camlight
+    lighting gouraud
+    title('IsoSurface')
+
+% solid = ['TotalTime:', num2str(sum(time)-time(5)),...
+%     ',MinDepth:', num2str(minDepth), ',MaxDepth:', num2str(maxDepth)];
+% STL_Export(V, F, '..\data\recon_result.stl', solid);
+disp('Output:')
+STL_Export(V, F, char("recon_result.stl"), char("tml10016"));
 
 end
 

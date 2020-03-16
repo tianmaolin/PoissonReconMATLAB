@@ -1,6 +1,15 @@
-function [valueTable, dotTable, dotdTable, ddotdTable] = valueDotTable(degree, minDepth, maxDepth)
-%valueDotTable compute b_w, b_w1 * b_w2, b_w1 * b_w2', b_w1' * b_w2'
+function [valueTable, dotTable, dotdTable, ddotdTable] = valueDotTable(minDepth, maxDepth, degree)
+%valueDotTable compute value table b_w, and dot product tables,
+% b_w1 * b_w2, b_w1 * b_w2', b_w1' * b_w2'.
+% For the means of the functions see the technical document.
+%
+% degree: the degree of B-spline, i.e., degree=1 is linear function.
+%
+% Maolin Tian, 2018
 
+if nargin < 3
+    degree = 2;
+end
 if degree == 2
     b = bspline([-1.5, -0.5, 0.5, 1.5]);
 elseif degree == 1
@@ -165,8 +174,7 @@ function mpp = fnmult(pp1, pp2)
 %                   |
 %                   |
 %                   b2
-%
-% Maolin Tian, Tongji University, 2018
+
 
 b1 = find(abs(pp1.breaks - pp2.breaks(1)) < 1e-13, 1);
 if isempty(b1)

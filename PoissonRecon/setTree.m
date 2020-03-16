@@ -1,4 +1,5 @@
 function [tree, samples] = setTree(samples, minDepth, maxDepth, feature)
+% Maolin Tian, 2018
 
 if minDepth < 0
     minDepth = 0;
@@ -43,18 +44,22 @@ else
         location + feature * off1 .* samples.Normal + ~feature * off2 .* samples.Normal;...
         location - feature * off1 .* samples.Normal - ~feature * off2 .* samples.Normal];
 
+    feature2 = [feature;feature];
+    feature2(location(:,1) <= 0 | location(:,1) >= 1 |...
+        location(:,2) <= 0 | location(:,2) >= 1 |...
+        location(:,3) <= 0 | location(:,3) >= 1 , :) = [];
     location(location(:,1) <= 0 | location(:,1) >= 1 |...
         location(:,2) <= 0 | location(:,2) >= 1 |...
         location(:,3) <= 0 | location(:,3) >= 1 , :) = [];
     if any(feature)
-        pc1 = pcdownsample(pointCloud(location([feature;feature],:)),'gridAverage', off1);
+        pc1 = pcdownsample(pointCloud(location(feature2,:)),'gridAverage', off1);
     else
-        pc1 = pointCloud(location([feature;feature],:));
+        pc1 = pointCloud(location(feature2,:));
     end
     if all(feature)
-        pc2 = pointCloud(location(~[feature;feature],:));
+        pc2 = pointCloud(location(~feature2,:));
     else
-        pc2 = pcdownsample(pointCloud(location(~[feature;feature],:)),'gridAverage', off2);
+        pc2 = pcdownsample(pointCloud(location(~feature2,:)),'gridAverage', off2);
     end
     location = [pc1.Location;pc2.Location];
     location = [location; 0 0 0;1 1 1];

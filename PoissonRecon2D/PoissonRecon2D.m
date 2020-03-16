@@ -1,35 +1,35 @@
-function C = poissonRecon2D(ptCloud2d, minDepth, maxDepth, verbose)
+function C = poissonRecon2D(ptCloud2d, minDepth, maxDepth, verbose, curvatureRatio)
 %PoissonRecon2D Perform the Poisson Surface Reconstruction algorithm on 2-D
-% point cloud.
+% point cloud. And support quadtree adaptive to curvature.
 %
 % pointCloud2D object ptCloud2d: Oriented points
 % minDepth: max pixel width 2^-minDepth
 % maxDepth: min pixel width 2^-maxDepth
 % verbose: Display progress information
+% curvatureRatio: curvature adaptive ratio to accelarating original Poisson recon
 % Contour line object C: boundary of scaned obejct
 %
-% There is not multigrid method. We use mldivide \ to solve equation. 
+% There is not multigrid method. We use mldivide \ to solve equation here. 
 % It uses 3-D Point Cloud Processing introduced in R2015a.
 %
-% Maolin Tian, Tongji University, 2018
-
-% TODO: 效果考虑对比C++版本的
-% TODO: 列残差表说明它不是主要误差
-% TODO: —Adaptive refinement of the octree based on residuals measured
-% at coarser levels, to allow the output mesh complexity to adapt
-% not only to sampling density but also to solution quality.
-
+% Maolin Tian, 2018
 
 if nargin < 4
     verbose = false;
 end
+if nargin < 5
+    curvatureRatio = 0.1;
+end
 if maxDepth < minDepth
-    error('maxDepth < minDepth !')
+    error('maxDepth < minDepth!')
+end
+if maxDepth > 9
+    warning('Depth is too big!')
 end
 
-degree = 2;
+% Preprocessing for Dot Product
 global valueTable dotTable dotdTable ddotdTable
-[valueTable, dotTable, dotdTable, ddotdTable] = valueDotTable(degree, minDepth, maxDepth);
+[valueTable, dotTable, dotdTable, ddotdTable] = valueDotTable(minDepth, maxDepth);
 
 % Create Tree and Samples
 time = zeros(5, 1);
@@ -37,58 +37,40 @@ tic;
 [ptCloud2d, T, scale] = normalization(ptCloud2d, 1.3);
 pc = pcdownsample2D(ptCloud2d, 2^(-maxDepth+1));
 samp0 = struct('Count', pc.Count, 'Location', pc.Location,'Normal', pc.Normal);
-[tree0,samp0] = setTree(samp0, minDepth - 2, maxDepth - 2);
-time(1) = toc();
+[tree1,samp1] = setTree(samp0, minDepth - 2, maxDepth - 2);
 
-% Get weights
-weights = getLocationWeight(samp0, tree0);
-normalWeights = getNormalWeight(samp0, tree0, weights);
-feature = pc.Location(normalWeights < 0.924,:);
-% feature = pc.Location(normalWeights < -1,:);
-% norm([1,0] + [sqrt(2)/2, sqrt(2)/2])/2 = 0.9239 --- 3/4*pi
-time(2) = toc() - time(1);
-
-%  Reset ( refine ) tree
-tic
-location = [];
-normal = [];
-samW = 2^-maxDepth;
-for s = 1:size(feature,1)
-    id = ptCloud2d.Location(:,1) < feature(s,1)+samW & ptCloud2d.Location(:,1) > feature(s,1)-samW &...
-        ptCloud2d.Location(:,2) < feature(s,2)+samW & ptCloud2d.Location(:,2) > feature(s,2)-samW;
-    location = [location; ptCloud2d.Location(id,:)];
-    normal = [normal; ptCloud2d.Normal(id,:)];
-    id = pc.Location(:,1) < feature(s,1)+samW & pc.Location(:,1) > feature(s,1)-samW &...
-        pc.Location(:,2) < feature(s,2)+samW & pc.Location(:,2) > feature(s,2)-samW;
-    pc.Location(id,:) = [];
-    pc.Normal(id,:) = [];
+%  Reset (or Refine) Tree if CurvatureRatio is Valid
+if curvatureRatio < 1
+    weights = getSamplingDensity(samp1, tree1);
+    curvatureField = getCurvatureField(samp1, tree1, weights);
+    feature = pc.Location(curvatureField < quantile(curvatureField, curvatureRatio),:);
+    samp2 = refineTreeAdaptiveToCurvature(ptCloud2d, maxDepth, pc, feature);
+    [tree1,samp1] = setTree(samp2, minDepth - 2, maxDepth - 2);
+    [tree,samples] = setTree(samp2, minDepth, maxDepth, feature);
+else
+    [tree,samples] = setTree(samp0, minDepth, maxDepth);
 end
-pc2 = pcdownsample2D(pointCloud2D(location,normal), 2^-maxDepth);
-samples = pointCloud2D([pc.Location;pc2.Location], [pc.Normal;pc2.Normal]);
-[tree,samples] = setTree(samples, minDepth, maxDepth, feature);
-[tree1,samp1] = setTree(samples, minDepth - 2, maxDepth - 2);
 time(1) = toc() + time(1);
+
+% Get Sampling Density Weights
+tic
+weights = getSamplingDensity(samp1, tree1);
+time(2) = toc() + time(2);
 
 % Set the FEM Coefficients and Constant Terms
 % Paper: Kazhdan, Bolitho, and Hoppe. Poisson Surface Reconstruction. 2006
-tic
-weights = getLocationWeight(samp1, tree1);
-time(2) = toc() + time(2);
 tic
 A = setCoefficients(tree);
 b = setConstantTerms(tree, samples, weights);
 time(3) = toc();
 
 % Solve the Linear System
-% We need refine octree and hanging node to ensure convergence.
-% Though I have not found any wrong reconstruction so far without them :).
 % x = cgs(A, b);
 x = A \ b;
 time(4) = toc() - time(3);
 
 % Show
 if verbose
-    
 %     figure
 %     quiver(ptCloud2d.Location(:,1), ptCloud2d.Location(:,2), ptCloud2d.Normal(:,1), ptCloud2d.Normal(:,2))
 %     title('Input Oriented Points'), legend([num2str(ptCloud2d.Count), ' Points'])
@@ -104,11 +86,11 @@ if verbose
 %     plot3(samples.Location(:,1), samples.Location(:,2), normalWeights, '.')
 %     title('Local Average Normal')
 
-%     figure, hold on
-%     plot(tree.center(:,1), tree.center(:,2), '.')
-%     plot(samples.Location(:,1), samples.Location(:,2), '.')
-%     legend('tree', 'samples')
-%     title('Input Points and Tree Center')
+    figure, hold on
+    plot(tree.center(:,1), tree.center(:,2), '.')
+    plot(samples.Location(:,1), samples.Location(:,2), '.')
+    legend('tree', 'samples')
+    title('Input Points and Tree Center')
 
     figure
     spy(A)
@@ -140,7 +122,6 @@ if verbose
 %     figure
 %     plot3(tree.center(:,1), tree.center(:,2), x,'.')
 %     title('Solution of Linear System')
-
 end
 
 % Extract Contour Line from x
@@ -165,24 +146,15 @@ if verbose
 %     plot3(tree.center(X>iso_value, 1), tree.center(X>iso_value, 2), X(X>iso_value),'*')
 %     legend('\chi < isovalue', '\chi > isovalue'), title('\chi')
     
+    disp('                             time (s)')
     disp(['Set tree:                    ',  num2str(time(1))])
     disp(['Got weight:                  ',	num2str(time(2))])
     disp(['Set FEM constraints:         ',	num2str(time(3))])
     disp(['Linear system solved:        ',	num2str(time(4))])
     disp(['Got piecewise linear curve:  ',	num2str(time(5))])
 %     disp(['Linear system size:        ',	num2str(size(A,1)), ' * ', num2str(size(A,1))])
-   
+% Extract isosurface time is o(s^3), because it's not adaptive here.
 end
-% In practice, the time of setting tree does not dominate the actual
-% running time. Extract isosurface time is o(s^3), because it's not
-% adaptive. It makes no sense.
-if ~verbose
-    disp(['Set tree:                    ',  num2str(time(1))])
-    disp(['Got piecewise linear curve:  ',	num2str(time(5))])
-end
-    disp(['Total time:                  ',	num2str(sum(time)-time(1)-time(5))])
-    disp(' ')
-    
 end
 
 

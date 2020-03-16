@@ -1,6 +1,7 @@
 function ptCloud2D = pointCloud2D(location, normal)
 %pointCloud2D Struct for storing a 2-D point cloud.
-
+%
+% Maolin Tian, 2018
 if size(location) ~= size(normal)
     error('Size of location is not equal to normal!')
 end

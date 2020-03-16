@@ -1,8 +1,11 @@
 function [error, dist] = getError(P1, P2)
 %getError Estimate error from P2 to P1(vertex of a contour)
-% P1 and P2 are N*2 points set. 
+% P1 and P2 are points set of size (N,2).
 % Because dist is the distence from P2 to line represented by P1, P1 should
-% be continues vertex in a contour.
+% be continues vertices in a contour.
+%
+% Maolin Tian, 2018
+
 P1 = unique(P1, 'rows');
 
 kdObj = KDTreeSearcher(P1);
@@ -16,5 +19,5 @@ L = L(:,1) .* N(:,1) + L(:,2) .* N(:,2);
 L = abs(L);
 dist = min(L, dist);
 error = sqrt(mean(dist.^2));
-disp('error =')
-disp(error)
+% disp('error =')
+% disp(error)

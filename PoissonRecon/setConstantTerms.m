@@ -1,7 +1,7 @@
 function b = setConstantTerms(tree, samples, weight)
 %setConstantTerms b_i = int V * d F_i dp
 %
-% Maolin Tian, Tongji University, 2018
+% Maolin Tian, 2018
 global dotdTable
 
 N = tree.Count;

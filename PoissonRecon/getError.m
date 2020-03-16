@@ -1,8 +1,10 @@
 function [error, dist] = getError(P1, P2)
 %getError Estimate error from P2 to P1(vertex of a isosurface)
-% P1 and P2 are N*3 points set. 
+% P1 and P2 are points set of size (N,3). 
 % Because dist is the distence from P2 to surface represented by P1, P1 should
-% be continues vertex in a isosurface.
+% be continues vertices in an isosurface.
+% 
+% Maolin Tian, 2018
 P1 = unique(P1, 'rows');
 
 kdObj = KDTreeSearcher(P1);

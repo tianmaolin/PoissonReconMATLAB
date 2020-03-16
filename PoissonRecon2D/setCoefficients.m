@@ -2,7 +2,7 @@ function A = setCoefficients(tree)
 %setCoefficients Coefficients_{ij} = int d B_i * d B_j dp
 % Dirichlet boundary condition = 0
 %
-% Maolin Tian, Tongji University, 2018
+% Maolin Tian, 2018
 
 global dotTable
 

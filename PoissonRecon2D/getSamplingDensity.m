@@ -1,5 +1,5 @@
-function weights = getLocationWeight(samples, tree)
-
+function weights = getSamplingDensity(samples, tree)
+% Maolin Tian, 2018
 global valueTable
 weights = zeros(samples.Count, 1);
 for s1 = 1:samples.Count

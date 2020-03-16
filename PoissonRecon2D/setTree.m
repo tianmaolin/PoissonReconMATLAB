@@ -1,5 +1,8 @@
 function [tree, samples] = setTree(samples, minDepth, maxDepth, feature)
 %setTree Set Tree. Support higher depth on feature points.
+% 
+% Maolin Tian, 2018
+
 if minDepth < 0
     minDepth = 0;
     warning('minDepth < 0 !')

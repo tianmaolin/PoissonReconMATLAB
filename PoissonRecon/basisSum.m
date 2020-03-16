@@ -1,7 +1,7 @@
 function X = basisSum(tree, x)
 %basisSum X = sum_i x_i * B_i
 %
-% Maolin Tian, Tongji University, 2018
+% Maolin Tian, 2018
 
 global valueTable
 N = tree.Count;

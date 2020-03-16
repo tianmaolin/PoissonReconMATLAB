@@ -1,62 +1,59 @@
-% Shows a couple of sample reconstruction using PR - Poisson Surface
-% Reconstruction
+% Show some curve reconstructions using Poisson Surface Reconstruction
 %
-% Maolin Tian, Tongji University, 2018
+% Maolin Tian, 2018
 
+% Input
 % ptCloud = ptCloudExample2D('triangle', 2000,0.002);
 % ptCloud = ptCloudExample2D('circle', 1000);
 % ptCloud = ptCloudExample2D('Armadillo');
 ptCloud = ptCloudExample2D('Dragon');
-ptCloud = pcNormalized(ptCloud);
-ptCloud1 = pointCloud2D(ptCloud.Location(1:2:end,:), ptCloud.Normal(1:2:end,:));
-ptCloud2 = pointCloud2D(ptCloud.Location(2:2:end,:), ptCloud.Normal(2:2:end,:));
-minDepth = 5; % grid size = [2^depth, 2^depth]
-maxDepth = 7; % it is better to less than 10
+minDepth = 4; % grid size = [2^depth, 2^depth]
+maxDepth = 8; % It is better to less than 10.
 verbose = false;
-%    v2 depth 7 = v3 (maxNormalWeight=-1 and depth=8) or (maxNormalWeight=2 and depth=7)
-% example1: ptCloud = ptCloudExample2D('triangle', 2000,0.002);
-%           v3 depth: 4~6, v2 depth: 4~5,4~6
-% example2: ptCloud = ptCloudExample2D('Dragon');
-%           v3 depth: 5~7, v2 depth: 5~6,5~7
 
-% figure
-% plot(ptCloud1.Location(:,1), ptCloud1.Location(:,2), '.')
-% title('Input Point Cloud')
-disp(['v3, Depth:  ',  num2str(maxDepth)])
-
-Contour = poissonRecon2D(ptCloud1, minDepth, maxDepth, verbose);
-if Contour(2,1) == size(Contour, 2) - 1
-    disp('Number of Isoline Pieces: ')
-else
-    disp('Number of Main Isoline Pieces: ')
-end
-disp(Contour(2, 1))
-
-% error
-L = 1;
-V = [];
-figure, hold on
-while(true)
-    plot(Contour(1,L + 1:L + Contour(2,L)),Contour(2,L + 1:L + Contour(2,L)),'g')
-    V = [V, Contour(:,L + 1:L + Contour(2,L))];
-    L = L + Contour(2,L) + 1;
-    if L >= size(Contour,2)
-        break
-    end
-end
-[error, dist] = getError(V', ptCloud2.Location);
-hold on, axis equal
-% plot(V(:,1), V(:,2), '.')
-plot(ptCloud2.Location(dist>1.2*error,1), ptCloud2.Location(dist>1.2*error,2), '*')
+ptCloud = pcNormalized(ptCloud);
+ptCloudTrain = pointCloud2D(ptCloud.Location(1:2:end,:), ptCloud.Normal(1:2:end,:));
+ptCloudTest = pointCloud2D(ptCloud.Location(2:2:end,:), ptCloud.Normal(2:2:end,:));
 figure
-hist(dist) 
-% dist is norm distribution rather than have extreme when adaptive without normal.
+plot(ptCloudTrain.Location(:,1), ptCloudTrain.Location(:,2), '.')
+title('Input Point Cloud')
+% disp(['Depth:  ',  num2str(maxDepth)])
+
+% Poisson Surface Reconstruction 2D
+Contour = poissonRecon2D(ptCloudTrain, minDepth, maxDepth, verbose);
+% if Contour(2,1) == size(Contour, 2) - 1
+%     disp('Number of Isoline Pieces: ')
+% else
+%     disp('Number of Main Isoline Pieces: ')
+% end
+% disp(Contour(2, 1))
+
+% % Error
+% L = 1;
+% V = [];
+% figure, hold on
+% while(true)
+%     plot(Contour(1,L + 1:L + Contour(2,L)),Contour(2,L + 1:L + Contour(2,L)),'g')
+%     V = [V, Contour(:,L + 1:L + Contour(2,L))];
+%     L = L + Contour(2,L) + 1;
+%     if L >= size(Contour,2)
+%         break
+%     end
+% end
+% [error, dist] = getError(V', ptCloudTest.Location);
+% hold on, axis equal
+% % plot(V(:,1), V(:,2), '.')
+% plot(ptCloudTest.Location(dist>1.2*error,1), ptCloudTest.Location(dist>1.2*error,2), '*')
+% title('The Points Contributing to Main Error')
+% figure
+% hist(dist)
+% title('Error Distribution')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function ptCloud2D = ptCloudExample2D(model, N, noise)
-%ptCloud2D make 2D pointCloud examples
+%ptCloud2D generate 2D pointCloud examples
 %
-% Maolin Tian, Tongji University, 2018
+% Maolin Tian, 2018
 
 if strcmp(model,'triangle')
     x0 = 0:1/N:1;

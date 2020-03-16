@@ -1,6 +1,8 @@
-function weights = getLocationWeight(samples, tree)
+function weights = getSamplingDensity(samples, tree)
 %getWeight weight_s = \sum_{s\in S} 1/s.w^3 b_{s.w}(x-s.x) b_{s.w}(y-s.y)
 %b_{s.w}(z-s.z)
+% 
+% Maolin Tian, 2018
 
 global valueTable
 weights = zeros(samples.Count, 1);

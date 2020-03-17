@@ -1,0 +1,231 @@
+\documentclass[11pt,twoside]{article}
+\usepackage{amsmath,latexsym,amssymb,amsfonts,amsbsy}
+\usepackage{graphicx}
+
+\textwidth 16cm \textheight 22cm \oddsidemargin 0in
+\evensidemargin 0in
+%
+\newfont{\bb}{msbm10}
+\def\Bbb#1{\mbox{\bb #1}}
+
+\def\diag{{\rm diag}}
+\def\Diag{{\rm Diag}}
+\def\tridiag{{\rm tridiag}}
+\def\det{{\rm det}}
+\def\sign{{\rm sign}}
+\def\opt{{\rm opt}}
+\def\rnm{\mathbb{R}^{n\times m}}
+\def\rmn{\mathbb{R}^{m\times n}}
+\def\cmn{\mathbb{C}^{m\times n}}
+\def\cnm{\mathbb{C}^{n\times m}}
+%
+\def\cnn{\mathbb{C}^{n\times n}}
+\def\rnn{\mathbb{R}^{n\times n}}
+
+\def\exp{{\rm exp}}
+\def\v{}
+\def\vect{}
+\newtheorem{algorithm}{Algorithm}[section]
+\newtheorem{method}{Method}[section]
+\newtheorem{example}{Example}[section]
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{definition}{Definition}[section]
+\newtheorem{lemma}{Lemma}[section]
+\newtheorem{corollary}{Corollary}[section]
+\newcommand{\vecspace}{\bf C}
+\newcommand{\IC}{\makebox{{\Bbb C}}}
+\newcommand{\IR}{\makebox{{\Bbb R}}}
+\newcommand{\leals}{\makebox{{\Bbb L}}}
+\newcommand{\neals}{\makebox{{\Bbb N}}}
+\newcommand{\Z}{\makebox{{\Bbb Z}}}
+\newcommand{\Frac}{\displaystyle\frac}
+\newcommand{\Sum}{\displaystyle\sum}
+\newcommand{\Lim}{\displaystyle\lim}
+\newcommand{\Max}{\displaystyle\max}
+\newcommand{\Prod}{\displaystyle\prod}
+\newcommand{\Min}{\displaystyle\min}
+%\newcommand{\Bigl}{\displaystyle\{ }
+%\newcommand{\Bigr}{\displaystyle\} }
+\newcommand{\compar}[1]{\langle {#1} \rangle}
+\newcommand{\ccompar}[1]{\langle\langle {#1}\rangle\rangle}
+\def \endproof{\vrule height8pt width 5pt depth 0pt}
+\baselineskip=14pt
+\parindent=0pt
+\parskip=3pt
+\overfullrule=0pt
+\renewcommand\theequation{\arabic{equation}}
+\renewcommand\thefigure{\arabic{figure}}
+\begin{document}
+\cleardoublepage \pagestyle{myheadings}
+
+\bibliographystyle{plain}
+
+\title{\bf Technical Document: Poisson Surface Reconstruction in MATLAB}
+
+
+\author{Maolin Tian\\
+{\it School of Mathematical Science}\\
+{\it Shanghai Jiao Tong University}\\
+{\it Email: tml10016@163.com }\\[2mm]
+}
+
+\maketitle \markboth{\small  Maolin Tian}
+{\small  Technical Document of Poisson Surface Reconstruction in MATLAB }
+
+\begin{abstract}
+The details of Poisson surface reconstruction for computing in MATLAB.
+\end{abstract}
+
+\bigskip
+
+\section{Poisson Reconstruction}\label{PR-sec}
+The Poisson equation \cite{PR} is 
+\begin{equation}\label{dbXV}
+\Delta \chi  = \nabla \cdot \vec{V}.
+\end{equation}
+Let the smoothing filter \(F\) be B-spline. 
+That is,
+\begin{equation}\label{FFs}
+F_p (q) = B(\frac{q-p}{w}) \frac{1}{w^3},
+\end{equation}
+\begin{equation}\label{BBBB}
+B(x,y,z) = (B(x)B(y)B(z))^{*n},
+\end{equation}
+and
+\begin{equation}\label{Bt10}
+B(t) = \left\{
+\begin{aligned}
+& 1 , |t| < 0.5 \\
+& 0 , \text{otherwise}.
+\end{aligned}
+\right.
+\end{equation}
+The sampling density is estimated by
+\begin{equation}\label{sampling_density}
+W (q) = \sum_{s \in S} F_{s.p} (q).
+\end{equation}
+The vector field is 
+\begin{equation}\label{dXFN_discrete}
+\vec{V}(q) = \sum_{s \in S}  F_{s.p} (q) \  s.\vec{N} \  \frac{1}{W(s.p)}.
+\end{equation}
+
+Assume the solution 
+\begin{equation}\label{XxB}
+\chi(p)=\sum_{i=1}^N x_i F_i (p).
+\end{equation}
+By Galerkin method, the linear system from (\ref{dbXV}) is
+\begin{equation}\label{dxBdVB}
+-\langle \nabla \chi(p), \nabla F_i \rangle
+=\langle \nabla \cdot \vec{V}, F_i \rangle,
+\end{equation}
+denoted by \(-Ax = b\), where
+\begin{equation}\label{ABB}
+A_{ij} = \langle \nabla F_i, \nabla F_j \rangle
+\end{equation}
+and
+\begin{equation}\label{bVB}
+b_i = \langle \vec V, \nabla F_i \rangle.
+\end{equation}
+
+\section{Computation in MATLAB}
+The equations (\ref{sampling_density}), (\ref{ABB}) and (\ref{bVB}) in Section \ref{PR-sec} are multivariate.
+Computationally, we need represent them in univariate form.
+Here we consider the case of 2D, where input is 2-D points and output is the curve.
+Let \(b(x)=B(x)^{*n}\) be the univariate B-spline with degree n.
+Then \(B(x,y)\) is separable since from (\ref{BBBB})
+\begin{equation}\label{Bxy_Bxn_Byn}
+\begin{aligned}
+B(x,y)
+&= (B(x)B(y))^{*n}\\
+&= (B(x))^{*n}\ (B(y))^{*n}\\
+&= b(x)\ b(y).
+\end{aligned}
+\end{equation}
+By (\ref{ABB}),
+\begin{equation}\label{Aij_dFi_dFj}
+\begin{aligned}
+A_{ij}
+&= \langle \nabla F_i, \nabla F_j \rangle\\
+&= \int \nabla F_i \cdot \nabla F_j\, dp\\
+&= \int \frac{\partial}{\partial x} F_i \frac{\partial}{\partial x}  F_j \, dp
++ \int \frac{\partial}{\partial y} F_i \frac{\partial}{\partial y}  F_j \, dp.
+\end{aligned}
+\end{equation}
+Let \(i.c\) be the center of grid \(i\),
+\(i.x\) is the first component and \(i.y\) is the second. 
+By (\ref{FFs}),
+\begin{equation}\label{Aij_bb_bb}
+\begin{aligned}
+& \int \frac{\partial}{\partial x} F_i \frac{\partial}{\partial x}  F_j \, dp \\
+&= \int \frac{\partial}{\partial x} (B(\frac{p-i.c}{i.w})\frac{1}{i.w^2})\
+\frac{\partial}{\partial x}  (B(\frac{p-j.c}{j.w})\frac{1}{j.w^2})\,  dp\\
+&= \int \frac{\partial}{\partial x} B(\frac{p-i.c}{i.w})\frac{1}{i.w^3}\
+\frac{\partial}{\partial x}  B(\frac{p-j.c}{j.w})\frac{1}{j.w^3}\,  dp\\
+&= \int \int \frac{\partial}{\partial x} b(\frac{x-i.x}{i.w})b(\frac{y-i.y}{i.w})\frac{1}{i.w^3}\
+\frac{\partial}{\partial x}  b(\frac{x-j.x}{j.w})b(\frac{y-j.y}{j.w})\frac{1}{j.w^3}\,  dx\,  dy\\
+&= - \frac{1}{i.w^3\, j.w^3} \int b'(\frac{i.x-j.x-x}{i.w}) b'(\frac{x}{j.w})\,  dx
+\int b(\frac{i.y-j.y-y}{i.w}) b(\frac{y}{j.w})\,  dy% \\
+% &= \frac{1}{i.w^2\, j.w^2}\ (b' * b')(\frac{i.x}{i.w} - \frac{j.x}{j.w})\ (b * b)(\frac{i.y}{i.w} - \frac{j.y}{j.w}).
+\end{aligned}
+\end{equation}
+The width is in \(\{2^{-d}|\,d\le D\}\), where \(D\) is max depth.
+\(D\) is small, therefore the number of \(s.w,\,i.w,\,j.w\) is finite.
+Let 
+\begin{equation}b_w(t)=b(\frac{t}{w}),\end{equation}
+\begin{equation}b'_w(t)=(b_w(t))'.\end{equation}
+(\ref{Aij_bb_bb}) is 
+\begin{equation}\label{xFixFjdp}
+\begin{aligned}
+& \int \frac{\partial}{\partial x} F_i \frac{\partial}{\partial x}  F_j \, dp \\
+&= - \frac{1}{i.w^2\, j.w^2} (b_{i.w}'*b_{j.w}')(i.x-j.x)
+\ (b_{i.w}*b_{j.w})(i.y-j.y)
+\end{aligned}
+\end{equation}
+
+Similarly, (\ref{sampling_density}) can be computed by
+\begin{equation}\label{WpsSFspp}
+\begin{aligned}
+W (p)
+&= \sum_{s \in S} F_{s.p} (p)\\
+&=\sum \frac{1}{s.w^2} b (\frac{x-s.x}{s.w}) \  b(\frac{y-s.y}{s.w}).
+\end{aligned}
+\end{equation}
+And (\ref{bVB}) can be computed by (\ref{dXFN_discrete}) and
+\begin{equation}\label{biVFidp}
+\begin{aligned}
+b_i &=\int \vec V \cdot \nabla{F}_i\,  dp\\
+&=\int \sum_{s \in S}  F_{s.p} (q) \  s.\vec{N} \  \frac{1}{W(s.p)} \cdot \nabla{F}_i\,  dp\\
+&=\sum_{s \in S} \frac{1}{W(s.p)} \int F_{s.p} \  s.\vec{N} \cdot \nabla{F}_i\, dp\\
+&=\sum \frac{1}{W(s.p)} \  s.\vec{N} .x \int F_{s.p}\ \frac{\partial}{\partial x}\ F_i\, dp\\
+&\  +\sum \frac{1}{W(s.p)} \  s.\vec{N} .y\int F_{s.p}\ \frac{\partial}{\partial y}\ F_i\, dp.
+\end{aligned}
+\end{equation}
+Here \( s.\vec{N}.x\) is the first component of \(s.\vec{N}\).
+As in (\ref{Aij_bb_bb}),
+\begin{equation}\label{FspxFip}
+\int F_{s.p}\ \frac{\partial}{\partial x} F_i\, dp
+= \frac{1}{s.w^2 i.w^2} (b_{s.w}*b_{i.w}')(s.x-i.x)
+\  (b_{s.w}*b_{i.w})(s.y-i.y)
+\end{equation}
+
+Hence, we can represent \( A_{ij},W(p),b_i\) by \(b(x)\),
+and we need compute \(b_w*b_w,\, b_w*b_w',\, b_w'*b_w',\, b_w\).
+It is easy to compute them, 
+since the 4\(D\) univariate piecewise functions are simple.
+We first compute a value table of them to accelerate.
+Then get an approximate value from the table in computation.
+
+\begin{thebibliography}{99}
+
+
+ \bibitem{PR}
+ Kazhdan, M., Bolitho, M., and Hoppe, H.
+ {\em Poisson surface reconstruction}.
+ In Proceedings of the fourth Eurographics symposium on Geometry processing (Vol. 7).
+
+
+
+\end{thebibliography}
+
+\end{document}

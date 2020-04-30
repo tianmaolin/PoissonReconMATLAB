@@ -7,12 +7,12 @@ maxL = floor(n - bound);
 for i = minL : maxL
     im(i, minL : n - i) = 0;
 end
-imshow(im);
+% imshow(im);
+% title('Input trianlge')
 
 % B-spline kernel vs. Gaussian kernel
-depth = 7;
+depth = 5;
 b = bspline([-1.5, -0.5, 0.5, 1.5]);
-db = fnder(b);
 b_w = fnscale(b, 2^(-depth));
 kerL = round(3 * n * (2 ^ - depth));
 BKernel = zeros(kerL, kerL);
@@ -28,14 +28,9 @@ imB = conv2(im, BKernel, 'same');
 
 % figure,hold on
 % imshow(imB)
-figure,hold on
-contour(im, [.5, .5]);
-contour(imB, [.5, .5]);
-
-
 
 % Gaussian Smoothing
-sigma = 2^-depth;
+sigma = 2^(-depth)/2;
 x = - 1.5 * (2 ^ - depth) : 1/n : 1.5 * (2 ^ - depth);
 GKernel = gaussmf(x,[sigma 0]);
 GKernel = GKernel' * GKernel;
@@ -43,11 +38,19 @@ GKernel = GKernel / sum(GKernel(:));
 figure, hold on
 mesh(GKernel)
 mesh(BKernel)
+title('B-spline kernel vs. Gaussian kernel')
 
-sigma = n*2^-5;
+sigma = n*2^-depth;
 imGaussian = imgaussfilt(im, sigma);
-figure, imshow(imGaussian);
-
+% imGaussian = conv2(im, GKernel, 'same');
+% figure, imshow(imGaussian);
+figure,hold on
+contour(im, [.5, .5]);
+contour(imB, [.5, .5],'b');
+title('Input vs. smoothed')
+contour(imGaussian, [.5, .5],'r');
+legend('Input','B-spline','Gaussian')
+% TODO: split smoothed_B(depth) from main and test different depth.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

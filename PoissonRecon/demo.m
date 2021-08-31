@@ -9,13 +9,13 @@ minDepth = 4; % max voxel width = 2^-minDepth
 maxDepth = 6; % maxDepth should < 8
 verbose = false;
 
-ptCloudTrain = pointCloud(ptCloud.Location(1:2:end,:), 'Normal', ptCloud.Normal(1:2:end,:));
-ptCloudTest = pointCloud(ptCloud.Location(2:2:end,:), 'Normal', ptCloud.Normal(2:2:end,:));
+ptCloudTrain = pointCloud(ptCloud.Location(1:2:end, :), 'Normal', ptCloud.Normal(1:2:end, :));
+ptCloudTest = pointCloud(ptCloud.Location(2:2:end, :), 'Normal', ptCloud.Normal(2:2:end, :));
 pcshow(ptCloudTrain)
 title('Input Point Cloud')
 
 % Poisson Surface Reconstruction
-[F,V] = poissonRecon(ptCloudTrain, minDepth, maxDepth, verbose);
+[F, V] = poissonRecon(ptCloudTrain, minDepth, maxDepth, verbose);
 
 % % Error
 % [error, dist] = getError(V, ptCloudTest.Location);

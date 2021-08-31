@@ -1,9 +1,16 @@
-function weights = getSamplingDensity(samples, tree)
+function normalField = getNormalField(samples, ...
+  tree, locationWeights)
+%getNormalField normalField(q) =
+%sum_s F_s(q) / s.samplingDensity * s.N
+% / sum_s F_s(q) / s.locationWeights
+%
 % Maolin Tian, 2018
+
 global valueTable
-weights = zeros(samples.Count, 1);
+normalField = zeros(samples.Count, 2);
 for s1 = 1:samples.Count
   n1 = samples.tree_ind(s1);
+  weigthSum = 0;
   for s2 = cell2mat(tree.sample_ind(tree.ngbr{n1}))'
     n2 = samples.tree_ind(s2);
     d = tree.depth(n2);
@@ -15,6 +22,10 @@ for s1 = 1:samples.Count
       continue;
     end
     F_i = valueTable{d}(dx, 2) * valueTable{d}(dy, 2) / (tree.width(n2))^2;
-    weights(s1) = weights(s1) + F_i;
+    weigthSum = weigthSum + F_i / locationWeights(s2);
+    F_i = F_i / locationWeights(s2) * samples.Normal(s2, :);
+    normalField(s1, :) = normalField(s1, :) + F_i;
   end
+  normalField(s1, 1) = norm(normalField(s1, :)) / weigthSum;
 end
+normalField = normalField(:, 1);

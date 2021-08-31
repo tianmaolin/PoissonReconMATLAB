@@ -47,15 +47,15 @@ function S = qtdecompModified(varargin)
 %   Examples
 %   --------
 %   View the quadtree decomposition of a matrix.
-%  
+%
 %       I = uint8([1 1 1 1 2 3 6 6;...
-%            1 1 2 1 4 5 6 8;...           
-%            1 1 1 1 7 7 7 7;...           
-%            1 1 1 1 6 6 5 5;...           
-%            20 22 20 22 1 2 3 4;...           
-%            20 22 22 20 5 4 7 8;...           
-%            20 22 20 20 9 12 40 12;...           
-%            20 22 20 20 13 14 15 16]);           
+%            1 1 2 1 4 5 6 8;...
+%            1 1 1 1 7 7 7 7;...
+%            1 1 1 1 6 6 5 5;...
+%            20 22 20 22 1 2 3 4;...
+%            20 22 22 20 5 4 7 8;...
+%            20 22 20 20 9 12 40 12;...
+%            20 22 20 20 13 14 15 16]);
 %       S = qtdecomp(I,.05);
 %       disp(full(S));
 %
@@ -64,9 +64,9 @@ function S = qtdecompModified(varargin)
 %       I = imread('liftingbody.png');
 %       S = qtdecomp(I,.27);
 %       blocks = repmat(uint8(0),size(S));
-%       for dim = [512 256 128 64 32 16 8 4 2 1];    
-%         numblocks = length(find(S==dim));    
-%         if (numblocks > 0)        
+%       for dim = [512 256 128 64 32 16 8 4 2 1];
+%         numblocks = length(find(S==dim));
+%         if (numblocks > 0)
 %           values = repmat(uint8(1),[dim dim numblocks]);
 %           values(2:dim,2:dim,:) = 0;
 %           blocks = qtsetblk(blocks,S,dim,values);
@@ -75,7 +75,7 @@ function S = qtdecompModified(varargin)
 %       blocks(end,1:end) =1;
 %       blocks(1:end,end) = 1;
 %       imshow(I),figure,imshow(blocks,[])
-%  
+%
 %   See also FUNCTION_HANDLE, QTSETBLK, QTGETBLK.
 
 %   Copyright 1993-2011 The MathWorks, Inc.
@@ -86,27 +86,27 @@ function S = qtdecompModified(varargin)
 
 [A, func, params, minDim, maxDim] = ParseInputs(varargin{:});
 
-[M,N] = size(A);
-S = zeros(M,N);
+[M, N] = size(A);
+S = zeros(M, N);
 
 % Initialize blocks
 S(1:maxDim:M, 1:maxDim:N) = maxDim;
 
 dim = maxDim;
 while (dim > minDim)
-    % Find all the blocks at the current size.
-    [blockValues, Sind] = qtgetblk(A, S, dim);
-    if (isempty(Sind))
-        % Done!
-        break;
-    end
-    doSplit = feval(func, blockValues, params{:}, dim);
-    
-    % Record results in output matrix.
-    dim = dim/2;
-    Sind = Sind(doSplit);
-    Sind = [Sind ; Sind+dim ; (Sind+M*dim) ; (Sind+(M+1)*dim)]; %#ok<AGROW>
-    S(Sind) = dim;
+  % Find all the blocks at the current size.
+  [blockValues, Sind] = qtgetblk(A, S, dim);
+  if (isempty(Sind))
+    % Done!
+    break;
+  end
+  doSplit = feval(func, blockValues, params{:}, dim);
+
+  % Record results in output matrix.
+  dim = dim / 2;
+  Sind = Sind(doSplit);
+  Sind = [Sind; Sind + dim; (Sind + M * dim); (Sind + (M + 1) * dim)]; %#ok<AGROW>
+  S(Sind) = dim;
 end
 
 S = sparse(S);
@@ -115,23 +115,23 @@ S = sparse(S);
 % %%% Subfunction QTDECOMP_Split - the default split tester
 % %%%
 % function dosplit = QTDECOMP_Split(A, threshold, dims)
-% 
+%
 % maxVals = max(max(A,[],1),[],2);
 % minVals = min(min(A,[],1),[],2);
 % dosplit = (double(maxVals) - double(minVals)) > threshold;
-% 
+%
 % dosplit = (dosplit & (size(A,1) > dims(1))) | (size(A,2) > dims(2));
-% 
-%     
-% 
+%
+%
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function dosplit = QTDECOMP_Split(A, ~, dims, curDim)
 % If maxVals = -1, than it split at minDepth. If maxVals = 2^(n-1),
 % it split at minDepth+n.
-maxVals = max(max(A,[],1),[],2);
+maxVals = max(max(A, [], 1), [], 2);
 dosplit = double(maxVals) >= dims(2) / curDim;
 
-dosplit = (dosplit & (size(A,1) > dims(1))) | (size(A,2) > dims(2));
+dosplit = (dosplit & (size(A, 1) > dims(1))) | (size(A, 2) > dims(2));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -142,98 +142,98 @@ dosplit = (dosplit & (size(A,1) > dims(1))) | (size(A,2) > dims(2));
 function [A, func, params, minDim, maxDim] = ParseInputs(varargin)
 
 if (nargin == 0)
-    error(message('images:qtdecomp:tooFewInputs'))
+  error(message('images:qtdecomp:tooFewInputs'))
 end
 
 A = varargin{1};
 if (ndims(A) > 2)
-    error(message('images:qtdecomp:expectedTwoD'))
+  error(message('images:qtdecomp:expectedTwoD'))
 end
 minDim = 1;
 maxDim = min(size(A));
 
 if (nargin == 1)
-    % qtdecomp(A)
+  % qtdecomp(A)
 
-    func = 'QTDECOMP_Split';
-    threshold = 0;
-    minDim = 1;
-    maxDim = min(size(A));
-    params = {threshold [minDim maxDim]};
-    
+  func = 'QTDECOMP_Split';
+  threshold = 0;
+  minDim = 1;
+  maxDim = min(size(A));
+  params = {threshold, [minDim, maxDim]};
+
 else
-    params = varargin(3:end);
-    [func,fcnchk_msg] = fcnchk(varargin{2}, length(params));
-    if isempty(fcnchk_msg)
-        % qtdecomp(A,fun,...)
-        % nothing more to do
-        
+  params = varargin(3:end);
+  [func, fcnchk_msg] = fcnchk(varargin{2}, length(params));
+  if isempty(fcnchk_msg)
+    % qtdecomp(A,fun,...)
+    % nothing more to do
+
+  else
+    if (nargin == 2)
+      % qtdecomp(A,threshold)
+
+      func = 'QTDECOMP_Split';
+      threshold = varargin{2};
+      minDim = 1;
+      maxDim = min(size(A));
+      params = {threshold, [minDim, maxDim]};
+
+    elseif (nargin == 3)
+      if (length(varargin{3}) == 1)
+        % qtdecomp(A,threshold,mindim)
+
+        func = 'QTDECOMP_Split';
+        threshold = varargin{2};
+        minDim = varargin{3};
+        maxDim = min(size(A));
+        params = {threshold, [minDim, maxDim]};
+
+      else
+        % qtdecomp(A,threshold,[mindim maxdim])
+
+        func = 'QTDECOMP_Split';
+        threshold = varargin{2};
+        minDim = min(varargin{3});
+        maxDim = max(varargin{3});
+        params = {threshold, [minDim, maxDim]};
+      end
+
     else
-        if (nargin == 2)
-            % qtdecomp(A,threshold)
-            
-            func = 'QTDECOMP_Split';
-            threshold = varargin{2};
-            minDim = 1;
-            maxDim = min(size(A));
-            params = {threshold [minDim maxDim]};
-            
-        elseif (nargin == 3) 
-            if (length(varargin{3}) == 1)
-                % qtdecomp(A,threshold,mindim)
-            
-                func = 'QTDECOMP_Split';
-                threshold = varargin{2};
-                minDim = varargin{3};
-                maxDim = min(size(A));
-                params = {threshold [minDim maxDim]};
-                
-            else
-                % qtdecomp(A,threshold,[mindim maxdim])
-                
-                func = 'QTDECOMP_Split';
-                threshold = varargin{2};
-                minDim = min(varargin{3});
-                maxDim = max(varargin{3});
-                params = {threshold [minDim maxDim]};
-            end
-            
-        else
-            error(message('images:qtdecomp:tooManyInputs'))
-        end
+      error(message('images:qtdecomp:tooManyInputs'))
     end
+  end
 end
 
 if (isequal(func, 'QTDECOMP_Split'))
-    % Do some error checking on the parameters
-    
-    if (threshold < 0)
-        error(message('images:qtdecomp:expectedNonnegative'))
-    end
+  % Do some error checking on the parameters
 
-    if (any(fix(size(A)./minDim) ~= (size(A)./minDim)))
-        error(message('images:qtdecomp:invalidSizeofA', 'minimum'))
-    end
-    
-    if (any(fix(size(A)./maxDim) ~= (size(A)./maxDim)))
-        error(message('images:qtdecomp:invalidSizeofA', 'maximum'))
-    end
-    
-    % need this syntax of log2.
-    [f,~] = log2(maxDim / minDim);
-    if (f ~= 0.5)
-        error(message('images:qtdecomp:invalidMaxDimOrMinDim'))
-    end
-    
-    % If the input is uint8, scale the threshold parameter.
-    if (isa(A, 'uint8'))
-        params{1} = round(255 * params{1});
-    elseif isa(A, 'uint16')
-        params{1} = round(65535 * params{1});
-    elseif isa(A,'int16')
-        A = int16touint16mex(A);
-        params{1} = round(65535 * params{1});
-    end
+  if (threshold < 0)
+    error(message('images:qtdecomp:expectedNonnegative'))
+  end
 
-    func = @QTDECOMP_Split;
+  if (any(fix(size(A) ./ minDim) ~= (size(A) ./ minDim)))
+    error(message('images:qtdecomp:invalidSizeofA', 'minimum'))
+  end
+
+  if (any(fix(size(A) ./ maxDim) ~= (size(A) ./ maxDim)))
+    error(message('images:qtdecomp:invalidSizeofA', 'maximum'))
+  end
+
+  % need this syntax of log2.
+  [f, ~] = log2(maxDim/minDim);
+  if (f ~= 0.5)
+    error(message('images:qtdecomp:invalidMaxDimOrMinDim'))
+  end
+
+  % If the input is uint8, scale the threshold parameter.
+  if (isa(A, 'uint8'))
+    params{1} = round(255*params{1});
+  elseif isa(A, 'uint16')
+    params{1} = round(65535*params{1});
+  elseif isa(A, 'int16')
+    A = int16touint16mex(A);
+    params{1} = round(65535*params{1});
+  end
+
+  func = @QTDECOMP_Split;
 end

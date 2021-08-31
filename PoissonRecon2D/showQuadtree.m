@@ -2,10 +2,10 @@
 % tree is in poissonRecon2D()
 figure, hold on
 for i = 1:tree.Count
-    rectangle('Position',[tree.center(i,1)-tree.width(i)/2 ...
-        tree.center(i,2)-tree.width(i)/2 tree.width(i) tree.width(i)])
+  rectangle('Position', [tree.center(i, 1) - tree.width(i) / 2, ...
+    tree.center(i, 2) - tree.width(i) / 2, tree.width(i), tree.width(i)])
 end
-plot(ptCloud2d.Location(:,1),ptCloud2d.Location(:,2),'b.')
+plot(ptCloud2d.Location(:, 1), ptCloud2d.Location(:, 2), 'b.')
 axis equal
 
 % % show b and x of 2-D grid data
